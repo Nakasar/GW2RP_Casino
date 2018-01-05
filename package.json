@@ -1,0 +1,27 @@
+{
+  "name": "gw2rp_casino",
+  "version": "1.0.0",
+  "description": "Virtual toolbox for tabletop casino games.",
+  "main": "server.js",
+  "scripts": {
+    "start": "nodemon run server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Nakasar/GW2RP_Casino.git"
+  },
+  "keywords": [
+    "guildwars2",
+    "casino"
+  ],
+  "author": "Kevin Nakasar Thizy",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Nakasar/GW2RP_Casino/issues"
+  },
+  "homepage": "https://github.com/Nakasar/GW2RP_Casino#readme",
+  "dependencies": {
+    "express": "^4.16.2",
+    "socket.io": "^2.0.4"
+  }
+}
