@@ -115,16 +115,85 @@
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.3/js/bootstrap.min.js" integrity="sha384-a5N7Y/aK3qNeh15eJKGWxsqtnX/wWdSZSKp+81YjTmS15nvnvxKHuzaWwXHDli+4" crossorigin="anonymous"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script>
+  $('#fatal-error').attr('hidden', true);
+  $("#login").removeAttr('hidden');
   var socket;
 
   // Search for tableId in url.
   var pathArray = window.location.pathname.split('/');
+  var tableIdInPath = null;
   if (pathArray.length > 1 && pathArray[1].length > 1) {
-    $("#login-form #table").val(pathArray[1]);
+    tableIdInPath = pathArray[1];
+    $("#login-form #table").val(tableIdInPath);
   }
 
-  $('#fatal-error').attr('hidden', true);
-  $("#login").removeAttr('hidden');
+  // SAVING PAGE STATE OF RELOAD
+  function storageAvailable(type) {
+  	try {
+  		var storage = window[type], x = '__storage_test__';
+  		storage.setItem(x, x);
+  		storage.removeItem(x);
+  		return true;
+  	}
+  	catch(e) {
+  		return false;
+  	}
+  }
+  window.addEventListener("beforeunload", function (event) {
+    if (storageAvailable('sessionStorage')) {
+      if (socket && socket.nickname && socket.nickname.length > 1 && socket.tableId && socket.tableId.length > 1) {
+        window.sessionStorage.setItem('nickname', socket.nickname);
+        window.sessionStorage.setItem('currentTable', socket.tableId);
+      }
+    } else {
+      console.log("Storage is not available in this browser.");
+    }
+  });
+  if (storageAvailable('sessionStorage')) {
+    var storedNickname = window.sessionStorage.getItem('nickname');
+    if (storedNickname && storedNickname.length > 1) {
+      $("#login-form #nickname").val(storedNickname);
+      var storedTableId = window.sessionStorage.getItem('currentTable');
+      if (storedTableId && storedTableId.length > 1 && storedTableId === tableIdInPath) {
+        // Auto reload socket with table.
+        connect(storedNickname, storedTableId);
+      }
+    }
+  }
+
+  function connect(nickname, table) {
+    socket = io();
+    socket.nickname = nickname;
+
+    socket.emit("logged in", { nickname: nickname, table: table });
+    console.log("hide");
+    $("#login").attr('hidden', true);
+
+    socket.on("log accepted", function(res) {
+      console.log("Log accepted as " + res.nickname);
+
+      for (var player of res.currentPlayers) {
+        addPlayerToList(player);
+      }
+
+      socket.nickname = res.nickname;
+      socket.tableId = res.tableId;
+
+      history.replaceState({ }, res.tableId, "/" + res.tableId);
+
+      $("#game #nickname").text(socket.nickname);
+      $("#game #chat-nickname").text(socket.nickname);
+
+      $("#game").removeAttr('hidden');
+    });
+    socket.on("log rejected", function(res) {
+      console.log("log rejected");
+      console.log(res);
+      $("#login").removeAttr('hidden');
+    });
+
+    socket.on("game message", onGameMessage);
+  }
 
   // handle submiting of login form.
   $("#login-form").submit(function() {
@@ -135,31 +204,7 @@
     if (table.length < 1) {
 
     } else if (nickname.length > 1 && nickname !== "dealer") {
-      socket = io();
-      socket.nickname = nickname;
-      socket.emit("logged in", { nickname: nickname, table: table });
-      $("#login").attr('hidden', true);
-
-      socket.on("log accepted", function(res) {
-        console.log("Log accepted as " + res.nickname);
-
-        for (var player of res.currentPlayers) {
-          addPlayerToList(player);
-        }
-
-        socket.nickname = res.nickname;
-
-        $("#game #nickname").text(socket.nickname);
-        $("#game #chat-nickname").text(socket.nickname);
-
-        $("#game").removeAttr('hidden');
-      });
-      socket.on("log rejected", function(res) {
-        console.log("log rejected");
-        $("#login").removeAttr('hidden');
-      });
-
-      socket.on("game message", onGameMessage);
+      connect(nickname, table);
     }
     return false;
   });

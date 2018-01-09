@@ -22,6 +22,8 @@ app.get('/:tableId', function(req, res) {
 io.on('connection', function(socket) {
   console.log("Socket opened.");
   socket.on("logged in", function(req) {
+    console.log("Request for log : ");
+    console.log(req);
     if (req.nickname && req.nickname.length > 1 && req.nickname !== "dealer" && req.table && req.table.length > 1) {
       socket.nickname = req.nickname;
       if (myCasino.hasTable(req.table)) {
@@ -43,7 +45,7 @@ io.on('connection', function(socket) {
         }
         socket.nickname = nickname;
       }
-      socket.emit("log accepted", { nickname: socket.nickname, currentPlayers: socket.table.playerArray(), motd: "" });
+      socket.emit("log accepted", { nickname: socket.nickname, tableId: socket.table.id, currentPlayers: socket.table.playerArray(), motd: "" });
       socket.table.addPlayerBySocket(socket);
       console.log("Socket logged in as " + socket.nickname + " on table " + socket.table.id);
     } else {
