@@ -133,7 +133,7 @@
             socket.emit("game message", { message: message, type: "command", command: "reset" });
             break;
           default:
-            $("#game-history").append('<li class="list-group-item" style="color: red;"> Commande inconnue : ' + command +'</li>')
+            displayInChat('Commande inconnue : ' + command, "error")
             break;
         }
       } else {
@@ -149,16 +149,39 @@
     if (message.type) {
       switch (message.type) {
         case "card":
-          $("#game-history").append('<li class="list-group-item">' + message.message + '</li>')
+          displayInChat(message.message, "card");
           onCardMessage(message);
           break;
+        case "gamereset":
+          hands = new Map();
+          $('#hands #hands-list').html('');
+          displayInChat(message.message, "info");
+          break;
         default:
-          $("#game-history").append('<li class="list-group-item">' + message.message + '</li>')
+          displayInChat(message.message, "message");
           break;
       }
     } else {
-      $("#game-history").append('<li class="list-group-item">' + message.message + '</li>')
+      displayInChat(message.message, "message");
     }
+  }
+
+  function displayInChat(content, style) {
+    switch (style) {
+      case "error":
+        $("#game-history").append('<li class="list-group-item list-group-item-danger">' + content + '</li>')
+        break;
+      case "info":
+        $("#game-history").append('<li class="list-group-item list-group-item-info">' + content + '</li>')
+        break;
+      case "card":
+        $("#game-history").append('<li class="list-group-item list-group-item-light">' + content + '</li>')
+        break;
+      default:
+        $("#game-history").append('<li class="list-group-item">' + content + '</li>')
+        break;
+    }
+    $("#game-history").scrollTop($("#game-history").prop('scrollHeight'));
   }
 
   const cards = new Map();

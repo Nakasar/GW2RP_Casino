@@ -103,6 +103,9 @@ module.exports = {
       for (var player of this.players.values()) {
         player.hand = [];
       }
+      this.started = false;
+      this.turnOrder = [];
+      this.currentPlayer = null;
     }
 
     startGame() {
@@ -165,7 +168,9 @@ module.exports = {
             }
             break;
           case "reset":
-          console.log("Command : Reset Game");
+            console.log("Command : Reset Game");
+            this.resetGame();
+            this.io.in(this.id).emit('game message', { author: 'table', timestamp: Date.now(), message: socket.nickname + " reset the game.", type: 'gamereset'});
             break;
           case "card" :
             console.log("Command : Draw a card for " + socket.nickname);
