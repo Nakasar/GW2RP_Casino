@@ -51,12 +51,15 @@ module.exports = {
     init() {
       this.deck = new Deck(deck52, 6);
       this.deck.shuffle();
-      this.addPlayer("dealer");
+      var dealer = this.addPlayer("dealer");
+      dealer.bot = true;
     }
 
     addPlayer(playerId) {
       if (!this.players.has(playerId)) {
-        this.players.set(playerId, new Player(playerId));
+        var player = new Player(playerId);
+        this.players.set(playerId, player);
+        return player;
       }
     }
 
@@ -65,7 +68,7 @@ module.exports = {
         var player = new Player(socket.nickname);
         player.socket = socket;
         this.players.set(socket.nickname, player);
-        this.notifyAllPlayers({ author: "table", timestamp: Date.now(), message: player.id + " joined the table." });
+        this.notifyAllPlayers({ author: "table", timestamp: Date.now(), message: player.id + " joined the table.", type: 'social', social: 'playerjoined', nickname: socket.nickname, bot: player.bot });
       }
     }
 
@@ -74,7 +77,7 @@ module.exports = {
       if (this.players.has(playerId)) {
         this.players.delete(playerId);
         console.log("notify left of " + playerId);
-        this.notifyAllPlayers({ author: "table", timestamp: Date.now(), message: playerId + " left the table." });
+        this.notifyAllPlayers({ author: "table", timestamp: Date.now(), message: playerId + " left the table.", type: 'social', social: "playerleft", nickname: playerId });
       }
     }
 
@@ -219,6 +222,7 @@ class Player {
   constructor(id) {
     this.id = id;
     this.hand = [];
+    this.bot = false;
     this.socket = null;
   }
 

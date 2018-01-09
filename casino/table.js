@@ -13,5 +13,13 @@ module.exports = {
       })
       return string;
     }
+
+    playerArray() {
+      var players = [];
+      for (var player of this.players.values()) {
+        players.push({ nickname: player.id, bot: player.bot });
+      }
+      return players;
+    }
   }
 }

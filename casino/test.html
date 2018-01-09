@@ -67,6 +67,10 @@
       </div>
 
       <div id="chat" class="container">
+        <ul id="player-list" class="list-group">
+
+        </ul>
+
         <ul id="game-history" class="list-group">
         </ul>
 
@@ -112,6 +116,13 @@
   <script src="/socket.io/socket.io.js"></script>
   <script>
   var socket;
+
+  // Search for tableId in url.
+  var pathArray = window.location.pathname.split('/');
+  if (pathArray.length > 1 && pathArray[1].length > 1) {
+    $("#login-form #table").val(pathArray[1]);
+  }
+
   $('#fatal-error').attr('hidden', true);
   $("#login").removeAttr('hidden');
 
@@ -130,7 +141,13 @@
       $("#login").attr('hidden', true);
 
       socket.on("log accepted", function(res) {
-        console.log("Log accepted as " + socket.nickname);
+        console.log("Log accepted as " + res.nickname);
+
+        for (var player of res.currentPlayers) {
+          addPlayerToList(player);
+        }
+
+        socket.nickname = res.nickname;
 
         $("#game #nickname").text(socket.nickname);
         $("#game #chat-nickname").text(socket.nickname);
@@ -179,6 +196,28 @@
     return false;
   });
 
+  function addPlayerToList(player) {
+    if (player.bot) {
+      $("#player-list").append('<li class="list-group-item list-group-item-secondary" id=' + player.nickname.hashCode() + '>' + player.nickname + '</li>');
+    } else {
+      $("#player-list").append('<li class="list-group-item" id=' + player.nickname.hashCode() + '>' + player.nickname + '</li>');
+    }
+  }
+
+  function removePlayerFromList(player) {
+    $("#player-list #" + player.nickname.hashCode()).remove();
+  }
+
+  function onPlayerJoined(joinmessage) {
+    displayInChat(joinmessage.message, "social");
+    addPlayerToList({ nickname: joinmessage.nickname, bot: joinmessage.bot });
+  }
+
+  function onPlayerLeft(leftmessage) {
+    displayInChat(leftmessage.message, "social");
+    removePlayerFromList({ nickname: leftmessage.nickname });
+  }
+
   function onGameMessage(message) {
     console.log(message);
     if (message.type) {
@@ -190,7 +229,7 @@
         case "gamereset":
           hands = new Map();
           $('#hands #hands-list').html('');
-          displayInChat(message.message, "info");
+          displayInChat(message.message, "major");
           break;
         case "commanderror":
           displayInChat(message.message, "error");
@@ -206,6 +245,19 @@
               break;
             default:
               displayInChat(message.message, "info");
+              break;
+          }
+          break;
+        case "social":
+          switch (message.social) {
+            case "playerleft":
+              onPlayerLeft(message);
+              break;
+            case "playerjoined":
+              onPlayerJoined(message);
+              break;
+            default:
+              displayInChat(message.message, "social");
               break;
           }
           break;
@@ -231,6 +283,12 @@
         break;
       case "connect":
         $("#game-history").append('<li class="list-group-item list-group-item-primary">' + content + '</li>')
+        break;
+      case "major":
+        $("#game-history").append('<li class="list-group-item list-group-item-warning">' + content + '</li>')
+        break;
+      case "social":
+        $("#game-history").append('<li class="list-group-item list-group-item-success">' + content + '</li>')
         break;
       default:
         $("#game-history").append('<li class="list-group-item">' + content + '</li>')
@@ -342,6 +400,20 @@
      socket.emit('game message', { type: 'command', command: 'stand' });
      return false;
    })
+
+   /**
+    * UTILS
+    */
+    String.prototype.hashCode = function(){
+    	var hash = 0;
+    	if (this.length == 0) return hash;
+    	for (i = 0; i < this.length; i++) {
+    		char = this.charCodeAt(i);
+    		hash = ((hash<<5)-hash)+char;
+    		hash = hash & hash; // Convert to 32bit integer
+    	}
+    	return hash;
+    }
   </script>
 </body>
 </html>

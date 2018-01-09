@@ -15,6 +15,10 @@ app.get('/', function(req, res) {
   res.sendFile(__dirname + "/casino/test.html");
 });
 
+app.get('/:tableId', function(req, res) {
+  res.sendFile(__dirname + "/casino/test.html");
+});
+
 io.on('connection', function(socket) {
   console.log("Socket opened.");
   socket.on("logged in", function(req) {
@@ -31,9 +35,17 @@ io.on('connection', function(socket) {
         socket.table = newTable;
       }
       socket.join(socket.table.id);
+      if (socket.table.players.has(socket.nickname)) {
+        var i = 1;
+        var nickname = socket.nickname + "_00" + i;
+        while (socket.table.players.has(nickname)) {
+          nickname = socket.nickname + "_00" + i;
+        }
+        socket.nickname = nickname;
+      }
+      socket.emit("log accepted", { nickname: socket.nickname, currentPlayers: socket.table.playerArray(), motd: "" });
       socket.table.addPlayerBySocket(socket);
       console.log("Socket logged in as " + socket.nickname + " on table " + socket.table.id);
-      socket.emit("log accepted");
     } else {
       socket.emit("log rejected");
     }
