@@ -6,24 +6,32 @@ class Card {
     this.name = name;
     this.hidden = false;
   }
+
+  static createFromName(name) {
+    var number = name.split("_")[0];
+    var value = [];
+    if (number == 1) {
+      value = [1, 11];
+    } else if (number <= 10) {
+      value = [parseInt(number)];
+    } else {
+      value = [10]
+    }
+    var card = new Card(value, name);
+    return card;
+  }
 }
 
-const deck52 = [
-  new Card([1, 11], "1_heart"),
-  new Card([2], "2_heart"),
-  new Card([3], "3_heart"),
-  new Card([4], "4_heart"),
-  new Card([1, 11], "1_spade"),
-  new Card([2], "2_spade"),
-  new Card([3], "3_spade"),
-  new Card([4], "4_spade"),
-  new Card([1, 11], "1_diamond"),
-  new Card([2], "2_diamond"),
-  new Card([3], "3_diamond"),
-  new Card([4], "4_diamond"),
-  new Card([5], "5_diamond"),
-  new Card([6], "6_diamond"),
-];
+const cards = new Map();
+const colors = ["diamond", "heart", "spade", "clover"];
+const values = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+const deck52 = [];
+
+for (var color of colors) {
+  for (var value of values) {
+    deck52.push(Card.createFromName(value + "_" + color));
+  }
+}
 
 const dealerLimit = 17;
 
@@ -136,7 +144,9 @@ module.exports = {
 
     dealerTurn(dealer) {
       console.log("Turn of: " + dealer.id);
-      dealer.showCard(1);
+      var card = dealer.showCard(1);
+      this.notifyAllPlayers({ author: 'table', timestamp: Date.now(), message: "Dealer shows " + card.name, type: 'card', for: "dealer", card: { name: card.name, value: card.value }, handValue: dealer.handValue() });
+
       if (this.automated) {
         // checl value of hand for dealer.
         var draw = true;
@@ -164,7 +174,7 @@ module.exports = {
               this.startGame();
             } else {
               console.log("Game is already running !");
-              socket.emit('game message', { author: 'table', timestamp: Date.now(), message: message.message, type: 'commanderror' });
+              socket.emit('game message', { author: 'table', timestamp: Date.now(), message: "Game is already running.", type: 'commanderror' });
             }
             break;
           case "reset":
@@ -187,7 +197,7 @@ module.exports = {
             } else {
               console.log("This is not this player's turn or game is not launched.");
             }
-          break;
+            break;
           default:
             console.log("Command : Unkown command : " + message.command);
             break;
@@ -226,6 +236,7 @@ class Player {
     if (this.hand[cardindex].hidden) {
       console.log(this.id + " shows " + this.hand[cardindex].name)
       console.log(this.id + " hand is now of value " + this.handValue());
+      return this.hand[cardindex];
     }
   }
 
@@ -236,13 +247,14 @@ class Player {
       for (var i = 0; i < possibleValues.length; i++) {
         newValues[i] = possibleValues[i] + card.value[0];
       }
-      possibleValues = newValues;
       if (card.value.length == 2) {
         var newValues2 = [];
         for (var i = 0; i < possibleValues.length; i++) {
           newValues2[i] = possibleValues[i] + card.value[1];
         }
         possibleValues = newValues.concat(newValues2);
+      } else {
+        possibleValues = newValues;
       }
     }
     return possibleValues;
