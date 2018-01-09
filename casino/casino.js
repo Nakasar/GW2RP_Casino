@@ -26,5 +26,17 @@ module.exports = {
         this.tables.delete(tableId);
       }
     }
+
+    hasTable(tableId) {
+      return this.tables.has(tableId);
+    }
+
+    getTable(tableId) {
+      if (this.tables.has(tableId)) {
+        return this.tables.get(tableId);
+      } else {
+        return null;
+      }
+    }
   }
 }

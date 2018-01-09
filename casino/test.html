@@ -29,9 +29,20 @@
 <body>
 
   <main class="container" role="main">
+    <div id="fatal-error" class="container">
+      <h1>Ooops :/</h1>
+      <p>Il semblerait que vous ne puissiez pas accéder au casino. Si vous voyez ce message, c'est probablement que quelque chose ne va pas de notre côté ou de nos associés. Vérifiez toutefois que JavaScript est autorisé sur votre navigateur internet.</p>
+    </div>
+
     <div id="login" class="container" hidden>
       <form id="login-form">
         <div class="form-group">
+          <div class="input-group mb-3">
+            <div class="input-group-prepend">
+              <span class="input-group-text">Table</span>
+            </div>
+            <input class="form-control" id="table" autocomplete="off" />
+          </div>
           <div class="input-group mb-3">
             <div class="input-group-prepend">
               <span class="input-group-text">Pseudo</span>
@@ -48,6 +59,12 @@
     <div id="game" class="container" hidden>
       <h1>VALET NOIR</h1>
       <p>Connecté en tant que <span id="nickname"></span>.</p>
+
+      <div id="main-controls" class="container">
+        <div class="btn-group" role="group" aria-label="Main controls">
+          <button type="button" class="btn btn-danger" id="disconnect">QUITTER</button>
+        </div>
+      </div>
 
       <div id="chat" class="container">
         <ul id="game-history" class="list-group">
@@ -68,6 +85,19 @@
         </form>
       </div>
 
+      <div id="control-panel" class="container">
+        <div id="game-controls" class="btn-group" role="group" aria-label="Game controls">
+          <button type="button" class="btn btn-success" id="start-game">Commencer</button>
+          <button type="button" class="btn btn-warning" id="reset-game">Nouvelle Partie</button>
+        </div>
+        <br/>
+        <br/>
+        <div id="turn-controls" class="btn-group" role="group" aria-label="Turn controls" hidden>
+          <button type="button" class="btn btn-primary" id="card">Carte</button>
+          <button type="button" class="btn btn-info" id="stand">Tenir</button>
+        </div>
+      </div>
+
       <div id="hands" class="container">
         <ul id="hands-list" class="list-group">
 
@@ -82,16 +112,21 @@
   <script src="/socket.io/socket.io.js"></script>
   <script>
   var socket;
+  $('#fatal-error').attr('hidden', true);
   $("#login").removeAttr('hidden');
 
   // handle submiting of login form.
   $("#login-form").submit(function() {
+    var table = $("#login-form #table").val();
     var nickname = $("#login-form #nickname").val();
     // Nickname can not be dealer and must exists.
-    if (nickname.length > 1 && nickname !== "dealer") {
+    // Table must be given.
+    if (table.length < 1) {
+
+    } else if (nickname.length > 1 && nickname !== "dealer") {
       socket = io();
       socket.nickname = nickname;
-      socket.emit("logged in", { nickname: nickname });
+      socket.emit("logged in", { nickname: nickname, table: table });
       $("#login").attr('hidden', true);
 
       socket.on("log accepted", function(res) {
@@ -159,6 +194,20 @@
           break;
         case "commanderror":
           displayInChat(message.message, "error");
+          break;
+        case "notification":
+          switch (message.notification) {
+            case "playerturn":
+              displayInChat(message.message, "info");
+              $('#turn-controls').removeAttr('hidden');
+              break;
+            case "endplayerturn":
+              $('#turn-controls').attr('hidden', true);
+              break;
+            default:
+              displayInChat(message.message, "info");
+              break;
+          }
           break;
         default:
           displayInChat(message.message, "message");
@@ -239,7 +288,6 @@
       var display = '<h2 id="player-id">' + this.id + '</h2><p>Valeur de la main : <span id="hand-value">' + this.value + '</span></p><ul id="cards-list" class="cards-list">';
       for (var card of this.cards) {
         var cardObjet = cards.get(card.name);
-        console.log(cardObjet);
         display += '<span style="color: ' + cardObjet.displayColor + ';">' + cardObjet.display + "</span> ";
       }
       display += '</ul>';
@@ -268,6 +316,32 @@
       hand.updateDisplay();
     }
   }
+
+  /**
+   * CONTROLS
+   */
+   // MAIN controls
+   $('#disconnect').click(function() {
+     window.location.replace('/');
+   })
+   // GAME CONTROLS
+   $('#start-game').click(function() {
+     socket.emit('game message', { type: 'command', command: 'start' });
+     return false;
+   })
+   $('#reset-game').click(function() {
+     socket.emit('game message', { type: 'command', command: 'reset' });
+     return false;
+   })
+   // TURN CONTROLS
+   $('#card').click(function() {
+     socket.emit('game message', { type: 'command', command: 'card' });
+     return false;
+   })
+   $('#stand').click(function() {
+     socket.emit('game message', { type: 'command', command: 'stand' });
+     return false;
+   })
   </script>
 </body>
 </html>

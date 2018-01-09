@@ -132,6 +132,7 @@ module.exports = {
     }
 
     nextPlayerTurn() {
+      this.currentPlayer.notify({ author: 'table', timestamp: Date.now(), message: 'This is the end of your turn.', type: 'notification', notification: 'endplayerturn' });
       var turn = this.turnOrder.indexOf(this.currentPlayer);
       if (turn < this.turnOrder.length - 1) {
         console.log("Next turn : " + this.turnOrder[turn + 1].id);
@@ -146,7 +147,8 @@ module.exports = {
       console.log("Turn of: " + dealer.id);
       var card = dealer.showCard(1);
       this.notifyAllPlayers({ author: 'table', timestamp: Date.now(), message: "Dealer shows " + card.name, type: 'card', for: "dealer", card: { name: card.name, value: card.value }, handValue: dealer.handValue() });
-
+      this.currentPlayer = null;
+      this.started = false;
       if (this.automated) {
         // checl value of hand for dealer.
         var draw = true;

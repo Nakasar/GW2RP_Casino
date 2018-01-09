@@ -10,9 +10,6 @@ const casino = require("./casino/casino.js");
 
 var myCasino = new casino.Casino("Epeirevine");
 console.log(myCasino.id + " created.");
-var myTable = myCasino.addTable("blackjack", "Table 1", true);
-myTable.io = io;
-myTable.init();
 
 app.get('/', function(req, res) {
   res.sendFile(__dirname + "/casino/test.html");
@@ -21,12 +18,21 @@ app.get('/', function(req, res) {
 io.on('connection', function(socket) {
   console.log("Socket opened.");
   socket.on("logged in", function(req) {
-    if (req.nickname && req.nickname.length > 1 && req.nickname !== "dealer") {
+    if (req.nickname && req.nickname.length > 1 && req.nickname !== "dealer" && req.table && req.table.length > 1) {
       socket.nickname = req.nickname;
-      socket.table = myTable;
-      socket.join(myTable.id);
-      myTable.addPlayerBySocket(socket);
-      console.log("Socket logged in as " + socket.nickname);
+      if (myCasino.hasTable(req.table)) {
+        // Table already exists, join it.
+        socket.table = myCasino.getTable(req.table);
+      } else {
+        // Create the table.
+        var newTable = myCasino.addTable("blackjack", req.table, true);
+        newTable.io = io;
+        newTable.init();
+        socket.table = newTable;
+      }
+      socket.join(socket.table.id);
+      socket.table.addPlayerBySocket(socket);
+      console.log("Socket logged in as " + socket.nickname + " on table " + socket.table.id);
       socket.emit("log accepted");
     } else {
       socket.emit("log rejected");
@@ -38,6 +44,10 @@ io.on('connection', function(socket) {
   socket.on('disconnect', function() {
     if (socket.nickname) {
       socket.table.removePlayer(socket.nickname);
+      if (socket.table.players.size == 1) {
+        console.log("Delete table: " + socket.table.id);
+        myCasino.removeTable(socket.table.id);
+      }
       console.log("Socket disconnected: " + socket.nickname);
     }
     console.log("Anonymous socket disconnected.");
