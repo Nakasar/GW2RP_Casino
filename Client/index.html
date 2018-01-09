@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  <meta name="theme-color" content="#000000">
+  <meta name="description" content="">
+  <meta name="author" content="Kevin 'Nakasar' Thizy">
+
+  <title>L'épervine Krytienne - Casino GW2RP</title>
+
+  <!--<link rel="stylesheet" href="/static/bootstrap.css"/>-->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.3/css/bootstrap.min.css" integrity="sha384-Zug+QiDoJOrZ5t4lssLdxGhVrurbmBWopoEl+M6BdEfwnCJZtKxi1KgxUyJq13dy" crossorigin="anonymous">
+  <link rel="stylesheet" href="/static/main.css"/>
+</head>
+<body>
+  <div id="page" class="container">
+
+    <div class="container">
+      <h1>Rejoindre une table</h1>
+      <form id="join-table">
+        <div class="form-group">
+          <div class="input-group mb-3">
+            <div class="input-group-prepend">
+              <span class="input-group-text">Pseudo</span>
+            </div>
+            <input class="form-control" id="nickname" autocomplete="off" />
+          </div>
+          <div class="input-group mb-3">
+            <input class="form-control" id="table-id" autocomplete="off" />
+            <div class="input-group-append">
+              <button class="btn btn-primary" type="submit">Rejoindre</button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="container">
+      <h1>Créer une table</h1>
+      <button class="btn btn-success">Créer une table</button>
+    </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.3/js/bootstrap.min.js" integrity="sha384-a5N7Y/aK3qNeh15eJKGWxsqtnX/wWdSZSKp+81YjTmS15nvnvxKHuzaWwXHDli+4" crossorigin="anonymous"></script>
+  <!--<script src="/static/jquery-1.8.1.js"></script>-->
+  <!--<script src="/static/botstrap.js"></script>-->
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    $(function() {
+      const socket = io();
+
+      $('#join-table').submit(function() {
+        let tableId = $('#join-table #table-id').val();
+        let nickname = $('#join-table #nickname').val();
+        if (tableId.length > 0) {
+          console.log("Request by " + nickname + " to join table: " + tableId);
+          socket.emit("request join table", { nickname: nickname, tableId: tableId });
+        }
+        return false;
+      });
+
+      socket.on("complete join table", function(res) {
+        localStorage.setItem(res.tableId, JSON.stringify({ nickname: res.nickname, tableId: res.tableId }));
+        console.log(res);
+        window.location.assign("http://localhost:3000/" + res.tableId);
+      });
+
+      socket.on("declined join table", function(err) {
+        switch (err.code) {
+          case "nickname":
+            console.log("Nickname " + err.nickname + "already used in table.")
+            break;
+          case "notable":
+            console.log("No table with ths id.");
+            break;
+          default:
+            console.log("Unknown error.");
+            break;
+        }
+      });
+    });
+  </script>
+</body>
+</html>

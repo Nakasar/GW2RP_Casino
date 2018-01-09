@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  <meta name="theme-color" content="#000000">
+  <meta name="description" content="">
+  <meta name="author" content="Kevin 'Nakasar' Thizy">
+
+  <title>L'épervine Krytienne - Poker</title>
+
+  <!--<link rel="stylesheet" href="/static/bootstrap.css"/>-->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.3/css/bootstrap.min.css" integrity="sha384-Zug+QiDoJOrZ5t4lssLdxGhVrurbmBWopoEl+M6BdEfwnCJZtKxi1KgxUyJq13dy" crossorigin="anonymous">
+  <link rel="stylesheet" href="/static/main.css"/>
+
+  <style>
+  #chat-history {
+    background-color: white;
+    height: 100px;
+    overflow-y: scroll;
+  }
+  </style>
+</head>
+<body>
+  <div id="page" class="container">
+    <h1>POKER</h1>
+
+    <div class="container" id="chatbox">
+      <div id="chat-history">
+        <ul class="list-group">
+        </ul>
+      </div>
+      <form id="message-form" action="">
+        <fieldset>
+          <div class="form-group">
+            <div class="input-group mb-3">
+              <div class="input-group-prepend">
+                <span class="input-group-text"><span id="pseudo">Nakasar</span> ></span>
+              </div>
+              <input class="form-control" id="message" autocomplete="off" />
+              <div class="input-group-append">
+                <button class="btn btn-secondary" type="submit">Envoyer</button>
+              </div>
+            </div>
+          </div>
+        </fieldset>
+      </form>
+    </div>
+    <div class="container" id="table">
+
+    </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.3/js/bootstrap.min.js" integrity="sha384-a5N7Y/aK3qNeh15eJKGWxsqtnX/wWdSZSKp+81YjTmS15nvnvxKHuzaWwXHDli+4" crossorigin="anonymous"></script>
+  <!--<script src="/static/jquery-1.8.1.js"></script>-->
+  <!--<script src="/static/botstrap.js"></script>-->
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    $(function() {
+      var pathArray = window.location.pathname.split('/');
+      var tableId = pathArray[1];
+      var nickname = "";
+
+      console.log(tableId)
+
+      var tableStorage = window.localStorage.getItem(tableId);
+      if (tableStorage) {
+        nickname = JSON.parse(tableStorage).nickname;
+      } else {
+        nickname = "Commandant";
+      }
+
+      const socket = io();
+      socket.emit("join table", { tableId: tableId, nickname: nickname });
+
+      socket.on("room joined", function(res) {
+        console.log("Room " + res.tableId + " joined as " + res.nickname);
+      });
+
+      socket.on("room can not join", function(err) {
+        console.log("Cannot join room.");
+      });
+
+      // chat
+      socket.on('chat message', function(message) {
+        $('#chatbox #chat-history > ul').append('<li class="list-group-item">' + '<em>[' + message.timestamp + ']' + message.author + ' :</em> ' + message.content + '</li>');
+      });
+      socket.on('server message', function(message) {
+        $('#chatbox #chat-history > ul').append('<li class="list-group-item"><em>' + message + '</em></li>');
+      });
+
+      $('#message-form').submit(function() {
+        var message = $('#message-form #message').val();
+        if (message.length > 0) {
+          socket.emit('chat message', { author: nickname, content: message });
+          $('#message-form #message').val('');
+        }
+        return false;
+      });
+    });
+  </script>
+</body>
+</html>

@@ -4,7 +4,8 @@
   "description": "Virtual toolbox for tabletop casino games.",
   "main": "server.js",
   "scripts": {
-    "start": "nodemon run server.js"
+    "start": "nodemon run server.js",
+    "test": "nodemon run serverTest.js"
   },
   "repository": {
     "type": "git",

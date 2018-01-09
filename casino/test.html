@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  <meta name="theme-color" content="#000000">
+  <meta name="description" content="">
+  <meta name="author" content="Kevin 'Nakasar' Thizy">
+
+  <title>L'épervine Krytienne - Poker</title>
+
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.3/css/bootstrap.min.css" integrity="sha384-Zug+QiDoJOrZ5t4lssLdxGhVrurbmBWopoEl+M6BdEfwnCJZtKxi1KgxUyJq13dy" crossorigin="anonymous">
+  <style>
+  body {
+    background-color: wheat;
+  }
+  #game-history {
+    max-height: 200px;
+    overflow-y: scroll;
+    background-color: white;
+  }
+  .cards-list {
+    list-style: none;
+    display: inline;
+  }
+  </style>
+</head>
+<body>
+
+  <main class="container" role="main">
+    <div id="login" class="container" hidden>
+      <form id="login-form">
+        <div class="form-group">
+          <div class="input-group mb-3">
+            <div class="input-group-prepend">
+              <span class="input-group-text">Pseudo</span>
+            </div>
+            <input class="form-control" id="nickname" autocomplete="off" />
+            <div class="input-group-append">
+              <button class="btn btn-secondary" type="submit">Rejoindre</button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div id="game" class="container" hidden>
+      <h1>VALET NOIR</h1>
+      <p>Connecté en tant que <span id="nickname"></span>.</p>
+
+      <div id="chat" class="container">
+        <ul id="game-history" class="list-group">
+        </ul>
+
+        <form id="chat-form">
+          <div class="form-group">
+            <div class="input-group mb-3">
+              <div class="input-group-prepend">
+                <span class="input-group-text" id="chat-nickname">Pseudo</span>
+              </div>
+              <input class="form-control" id="message" autocomplete="off" />
+              <div class="input-group-append">
+                <button class="btn btn-secondary" type="submit">Envoyer</button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div id="hands" class="container">
+        <ul id="hands-list" class="list-group">
+
+        </ul>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.3/js/bootstrap.min.js" integrity="sha384-a5N7Y/aK3qNeh15eJKGWxsqtnX/wWdSZSKp+81YjTmS15nvnvxKHuzaWwXHDli+4" crossorigin="anonymous"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+  $(function() {
+    var socket;
+    $("#login").removeAttr('hidden');
+
+    // handle submiting of login form.
+    $("#login-form").submit(function() {
+      var nickname = $("#login-form #nickname").val();
+      // Nickname can not be dealer and must exists.
+      if (nickname.length > 1 && nickname !== "dealer") {
+        socket = io();
+        socket.nickname = nickname;
+        socket.emit("logged in", { nickname: nickname });
+        $("#login").attr('hidden', true);
+
+        socket.on("log accepted", function(res) {
+          console.log("Log accepted as " + socket.nickname);
+
+          $("#game #nickname").text(socket.nickname);
+          $("#game #chat-nickname").text(socket.nickname);
+
+          $("#game").removeAttr('hidden');
+        });
+        socket.on("log rejected", function(res) {
+          console.log("log rejected");
+          $("#login").removeAttr('hidden');
+        });
+
+        socket.on("game message", onGameMessage);
+      }
+      return false;
+    });
+
+    $("#chat-form").submit(function() {
+      var message = $("#chat-form #message").val();
+      if (message.length > 1) {
+        if (message[0] === "/") {
+          // User entered command
+          var commandline = message.substring(1, message.length).split(" ");
+          var command = commandline[0];
+          switch (command) {
+            case "start":
+              socket.emit("game message", { message: message, type: "command", command: "start" });
+              break;
+            case "card":
+              socket.emit("game message", { message: message, type: "command", command: "card" });
+              break;
+            case "stand":
+              socket.emit("game message", { message: message, type: "command", command: "stand" });
+              break;
+            case "reset":
+              socket.emit("game message", { message: message, type: "command", command: "reset" });
+              break;
+            default:
+              $("#game-history").append('<li class="list-group-item" style="color: red;"> Commande inconnue : ' + command +'</li>')
+              break;
+          }
+        } else {
+          socket.emit("game message", { message: message, type: "chat" });
+        }
+      }
+      $("#chat-form #message").val('');
+      return false;
+    });
+  });
+
+  function onGameMessage(message) {
+    console.log(message);
+    if (message.type) {
+      console.log(message.type);
+      switch (message.type) {
+        case "card":
+          $("#game-history").append('<li class="list-group-item">' + message.message + '</li>')
+          onCardMessage(message);
+          break;
+        default:
+          $("#game-history").append('<li class="list-group-item">' + message.message + '</li>')
+          break;
+      }
+    } else {
+      $("#game-history").append('<li class="list-group-item">' + message.message + '</li>')
+    }
+  }
+
+  class Hand {
+    constructor(playerId) {
+      this.id = playerId;
+      this.value = 0;
+      this.cards = [];
+    }
+
+    createDisplay() {
+      if (this.id === nickname) {
+        $('#hands #hands-list').append('<li class="list-group-item active" id="' + this.id + '"><h2 id="player-id">Joueur</h2><p>Valeur de la main : <span id="hand-value">0</span></p><ul id="cards-list" class="cards-list"></ul></li>');
+      } else {
+        $('#hands #hands-list').append('<li class="list-group-item" id="' + this.id + '"><h2 id="player-id">Joueur</h2><p>Valeur de la main : <span id="hand-value">0</span></p><ul id="cards-list" class="cards-list"></ul></li>');
+      }
+    }
+
+    updateDisplay() {
+      var display = '<h2 id="player-id">' + this.id + '</h2><p>Valeur de la main : <span id="hand-value">' + this.value + '</span></p><ul id="cards-list" class="cards-list">';
+      for (var card of this.cards) {
+        display += card.name + " ";
+      }
+      display += '</ul>';
+      $('#hands #hands-list #' + this.id).html(display);
+    }
+
+    addCard(card) {
+      this.cards.push(card)
+    }
+  }
+
+  var hands = new Map();
+  function onCardMessage(message) {
+
+    if (hands.has(message.for)) {
+      var hand = hands.get(message.for);
+      hand.addCard(message.card);
+      hand.value = message.handValue;
+      hand.updateDisplay();
+    } else {
+      // Create new hand
+      var hand = new Hand(message.for);
+      hands.set(message.for, hand);
+      hand.createDisplay();
+      hand.addCard(message.card);
+      hand.value = message.handValue;
+      hand.updateDisplay();
+    }
+  }
+  </script>
+</body>
+</html>

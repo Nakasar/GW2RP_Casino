@@ -1,0 +1,56 @@
+body {
+  background: url('/imgs/green_mat_texture.jpg') repeat;
+  padding-top: 5rem;
+}
+
+#panel-table {
+  text-align: center;
+}
+
+/* CARDS */
+.card-slot {
+  color: white;
+  width: 88px;
+  height: 127px;
+  border: 2px solid white;
+  list-style: none;
+  display: inline-block;
+}
+
+.player-hand {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+}
+
+#dealer-hand {
+  transform: rotate(180deg);
+}
+
+#player1-hand {
+  transform: rotate(90deg);
+}
+
+#player2-hand {
+  transform: rotate(60deg);
+}
+
+#player3-hand {
+  transform: rotate(30deg);
+}
+
+#player4-hand {
+  transform: rotate(0deg);
+}
+
+#player5-hand {
+  transform: rotate(-30deg);
+}
+
+#player6-hand {
+  transform: rotate(-60deg);
+}
+
+#player7-hand {
+  transform: rotate(-90deg);
+}
