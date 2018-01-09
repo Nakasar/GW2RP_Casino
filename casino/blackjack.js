@@ -99,6 +99,12 @@ module.exports = {
       }
     }
 
+    resetGame() {
+      for (var player of this.players.values()) {
+        player.hand = [];
+      }
+    }
+
     startGame() {
       console.log("Starting game with players: " + this.listPlayers());
       this.started = true;
@@ -118,7 +124,7 @@ module.exports = {
       var turn = this.turnOrder.indexOf(this.currentPlayer);
       if (turn < this.turnOrder.length - 1) {
         console.log("Next turn : " + this.turnOrder[turn + 1].id);
-        this.playerTurn(this.players.get(this.turnOrder[turn + 1]));
+        this.playerTurn(this.turnOrder[turn + 1]);
       } else {
         console.log("All players played. This id dealer's last turn.");
         this.dealerTurn(this.players.get("dealer"));

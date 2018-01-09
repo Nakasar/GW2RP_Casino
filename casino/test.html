@@ -81,75 +81,72 @@
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.3/js/bootstrap.min.js" integrity="sha384-a5N7Y/aK3qNeh15eJKGWxsqtnX/wWdSZSKp+81YjTmS15nvnvxKHuzaWwXHDli+4" crossorigin="anonymous"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script>
-  $(function() {
-    var socket;
-    $("#login").removeAttr('hidden');
+  var socket;
+  $("#login").removeAttr('hidden');
 
-    // handle submiting of login form.
-    $("#login-form").submit(function() {
-      var nickname = $("#login-form #nickname").val();
-      // Nickname can not be dealer and must exists.
-      if (nickname.length > 1 && nickname !== "dealer") {
-        socket = io();
-        socket.nickname = nickname;
-        socket.emit("logged in", { nickname: nickname });
-        $("#login").attr('hidden', true);
+  // handle submiting of login form.
+  $("#login-form").submit(function() {
+    var nickname = $("#login-form #nickname").val();
+    // Nickname can not be dealer and must exists.
+    if (nickname.length > 1 && nickname !== "dealer") {
+      socket = io();
+      socket.nickname = nickname;
+      socket.emit("logged in", { nickname: nickname });
+      $("#login").attr('hidden', true);
 
-        socket.on("log accepted", function(res) {
-          console.log("Log accepted as " + socket.nickname);
+      socket.on("log accepted", function(res) {
+        console.log("Log accepted as " + socket.nickname);
 
-          $("#game #nickname").text(socket.nickname);
-          $("#game #chat-nickname").text(socket.nickname);
+        $("#game #nickname").text(socket.nickname);
+        $("#game #chat-nickname").text(socket.nickname);
 
-          $("#game").removeAttr('hidden');
-        });
-        socket.on("log rejected", function(res) {
-          console.log("log rejected");
-          $("#login").removeAttr('hidden');
-        });
+        $("#game").removeAttr('hidden');
+      });
+      socket.on("log rejected", function(res) {
+        console.log("log rejected");
+        $("#login").removeAttr('hidden');
+      });
 
-        socket.on("game message", onGameMessage);
-      }
-      return false;
-    });
+      socket.on("game message", onGameMessage);
+    }
+    return false;
+  });
 
-    $("#chat-form").submit(function() {
-      var message = $("#chat-form #message").val();
-      if (message.length > 1) {
-        if (message[0] === "/") {
-          // User entered command
-          var commandline = message.substring(1, message.length).split(" ");
-          var command = commandline[0];
-          switch (command) {
-            case "start":
-              socket.emit("game message", { message: message, type: "command", command: "start" });
-              break;
-            case "card":
-              socket.emit("game message", { message: message, type: "command", command: "card" });
-              break;
-            case "stand":
-              socket.emit("game message", { message: message, type: "command", command: "stand" });
-              break;
-            case "reset":
-              socket.emit("game message", { message: message, type: "command", command: "reset" });
-              break;
-            default:
-              $("#game-history").append('<li class="list-group-item" style="color: red;"> Commande inconnue : ' + command +'</li>')
-              break;
-          }
-        } else {
-          socket.emit("game message", { message: message, type: "chat" });
+  $("#chat-form").submit(function() {
+    var message = $("#chat-form #message").val();
+    if (message.length > 1) {
+      if (message[0] === "/") {
+        // User entered command
+        var commandline = message.substring(1, message.length).split(" ");
+        var command = commandline[0];
+        switch (command) {
+          case "start":
+            socket.emit("game message", { message: message, type: "command", command: "start" });
+            break;
+          case "card":
+            socket.emit("game message", { message: message, type: "command", command: "card" });
+            break;
+          case "stand":
+            socket.emit("game message", { message: message, type: "command", command: "stand" });
+            break;
+          case "reset":
+            socket.emit("game message", { message: message, type: "command", command: "reset" });
+            break;
+          default:
+            $("#game-history").append('<li class="list-group-item" style="color: red;"> Commande inconnue : ' + command +'</li>')
+            break;
         }
+      } else {
+        socket.emit("game message", { message: message, type: "chat" });
       }
-      $("#chat-form #message").val('');
-      return false;
-    });
+    }
+    $("#chat-form #message").val('');
+    return false;
   });
 
   function onGameMessage(message) {
     console.log(message);
     if (message.type) {
-      console.log(message.type);
       switch (message.type) {
         case "card":
           $("#game-history").append('<li class="list-group-item">' + message.message + '</li>')
@@ -164,6 +161,36 @@
     }
   }
 
+  const cards = new Map();
+  const colors = ["diamond", "heart", "spade", "clover"];
+  const colorsDisplays = new Map([["diamond", "♦"], ["heart", "♥"], ["spade", "♠"], ["clover", "♣"]]);
+  const values = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+
+  class Card {
+    constructor(number, color, value) {
+      this.number = number;
+      this.color = color;
+      this.value = value;
+      this.display = number + colorsDisplays.get(color);
+      if (["diamond", "heart"].indexOf(color) > -1) {
+        this.displayColor = "red";
+      } else {
+        this.displayColor = "black";
+      }
+    }
+
+    static createFromName(name) {
+      var splitted = name.split("_");
+      var card = new Card(splitted[0], splitted[1], 1);
+      return card;
+    }
+  }
+  for (var color of colors) {
+    for (var value of values) {
+      cards.set(value + "_" + color, Card.createFromName(value + "_" + color));
+    }
+  }
+
   class Hand {
     constructor(playerId) {
       this.id = playerId;
@@ -172,7 +199,7 @@
     }
 
     createDisplay() {
-      if (this.id === nickname) {
+      if (this.id === socket.nickname) {
         $('#hands #hands-list').append('<li class="list-group-item active" id="' + this.id + '"><h2 id="player-id">Joueur</h2><p>Valeur de la main : <span id="hand-value">0</span></p><ul id="cards-list" class="cards-list"></ul></li>');
       } else {
         $('#hands #hands-list').append('<li class="list-group-item" id="' + this.id + '"><h2 id="player-id">Joueur</h2><p>Valeur de la main : <span id="hand-value">0</span></p><ul id="cards-list" class="cards-list"></ul></li>');
@@ -182,7 +209,9 @@
     updateDisplay() {
       var display = '<h2 id="player-id">' + this.id + '</h2><p>Valeur de la main : <span id="hand-value">' + this.value + '</span></p><ul id="cards-list" class="cards-list">';
       for (var card of this.cards) {
-        display += card.name + " ";
+        var cardObjet = cards.get(card.name);
+        console.log(cardObjet);
+        display += '<span style="color: ' + cardObjet.displayColor + ';">' + cardObjet.display + "</span> ";
       }
       display += '</ul>';
       $('#hands #hands-list #' + this.id).html(display);
@@ -195,7 +224,6 @@
 
   var hands = new Map();
   function onCardMessage(message) {
-
     if (hands.has(message.for)) {
       var hand = hands.get(message.for);
       hand.addCard(message.card);
