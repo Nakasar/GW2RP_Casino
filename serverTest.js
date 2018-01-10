@@ -17,6 +17,22 @@ app.get('/', function(req, res) {
   res.sendFile(__dirname + "/casino/test.html");
 });
 
+app.get('/tokens/:token', function(req, res) {
+  if (req.params.token.length > 1) {
+    var tokenName;
+    if (req.params.token.split(".").length == 1) {
+      tokenName = req.params.token + ".png"
+    } else {
+      tokenName = req.params.token;
+    }
+    res.sendFile(__dirname + "/public/src/img/tokens/" + tokenName, function(err) {
+      if (err) {
+        res.status(err.status).end();
+      }
+    });
+  }
+});
+
 app.get('/:tableId', function(req, res) {
   res.sendFile(__dirname + "/casino/test.html");
 });
