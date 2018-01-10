@@ -122,7 +122,7 @@
   var socket;
 
   // Search for tableId in url.
-  var pathArray = window.location.pathname.split('/');
+  var pathArray = window.location.pathname.split('/casino')[1].split("/");
   var tableIdInPath = null;
   if (pathArray.length > 1 && pathArray[1].length > 1) {
     tableIdInPath = pathArray[1];
@@ -183,7 +183,7 @@
       socket.nickname = res.nickname;
       socket.tableId = res.tableId;
 
-      history.replaceState({ }, res.tableId, "/" + res.tableId);
+      history.replaceState({ }, res.tableId, "/casino/" + res.tableId);
 
       $("#game #nickname").text(socket.nickname);
       $("#game #chat-nickname").text(socket.nickname);
@@ -429,7 +429,7 @@
    */
    // MAIN controls
    $('#disconnect').click(function() {
-     window.location.replace('/');
+     window.location.replace('/casino');
    })
    // GAME CONTROLS
    $('#start-game').click(function() {
