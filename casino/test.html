@@ -164,7 +164,9 @@
   }
 
   function connect(nickname, table) {
-    socket = io();
+    socket = io({
+      path: '/casino'
+    });
     socket.nickname = nickname;
 
     socket.emit("logged in", { nickname: nickname, table: table });
