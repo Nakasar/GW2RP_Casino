@@ -11,6 +11,8 @@ const casino = require("./casino/casino.js");
 var myCasino = new casino.Casino("Epeirevine");
 console.log(myCasino.id + " created.");
 
+app.use('/imgs', express.static('public/src/img'));
+
 app.get('/', function(req, res) {
   res.sendFile(__dirname + "/casino/test.html");
 });
