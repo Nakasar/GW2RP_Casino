@@ -37,6 +37,7 @@ app.get('/casino/:tableId', function(req, res) {
   res.sendFile(__dirname + "/casino/test.html");
 });
 
+io.set('resource', '/casino/socket.io');
 io.on('connection', function(socket) {
   console.log("Socket opened.");
   socket.on("logged in", function(req) {
