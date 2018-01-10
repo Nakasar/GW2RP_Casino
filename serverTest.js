@@ -4,7 +4,9 @@ const express = require('express');
 const app = express();
 const http = require('http').Server(app);
 const port = process.env.PORT || 3050;
-const io = require('socket.io')(http);
+const io = require('socket.io')(http, {
+  path: '/casino'
+});
 
 const casino = require("./casino/casino.js");
 
@@ -37,7 +39,6 @@ app.get('/casino/:tableId', function(req, res) {
   res.sendFile(__dirname + "/casino/test.html");
 });
 
-io.set('resource', '/casino/socket.io');
 io.on('connection', function(socket) {
   console.log("Socket opened.");
   socket.on("logged in", function(req) {
