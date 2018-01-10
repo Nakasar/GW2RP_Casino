@@ -11,13 +11,13 @@ const casino = require("./casino/casino.js");
 var myCasino = new casino.Casino("Epeirevine");
 console.log(myCasino.id + " created.");
 
-app.use('/imgs', express.static('public/src/img'));
+app.use('/casino/imgs', express.static('public/src/img'));
 
-app.get('/', function(req, res) {
+app.get('/casino', function(req, res) {
   res.sendFile(__dirname + "/casino/test.html");
 });
 
-app.get('/tokens/:token', function(req, res) {
+app.get('/casino/tokens/:token', function(req, res) {
   if (req.params.token.length > 1) {
     var tokenName;
     if (req.params.token.split(".").length == 1) {
@@ -33,7 +33,7 @@ app.get('/tokens/:token', function(req, res) {
   }
 });
 
-app.get('/:tableId', function(req, res) {
+app.get('/casino/:tableId', function(req, res) {
   res.sendFile(__dirname + "/casino/test.html");
 });
 
