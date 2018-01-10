@@ -5,7 +5,7 @@ const app = express();
 const http = require('http').Server(app);
 const port = process.env.PORT || 3050;
 const io = require('socket.io')(http, {
-  path: '/casino'
+  path: '/casino/socket.io'
 });
 
 const casino = require("./casino/casino.js");
