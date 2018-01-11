@@ -52,6 +52,9 @@ module.exports = {
       this.deck = new Deck(deck52, 6);
       this.deck.shuffle();
       var dealer = this.addPlayer("dealer");
+      dealer.hand = new Hand("dealer");
+      dealer.hand.bet = 0;
+      dealer.entered = true;
       dealer.bot = true;
     }
 
@@ -88,22 +91,24 @@ module.exports = {
       console.log(player.hand);
       console.log(player.handValue());
       if (hidden) {
-        player.notify({ author: 'table', timestamp: Date.now(), message: "You received " + card.name, type: 'card', for: player.id, card: { name: card.name, value: card.value }, handValue: player.handValue() })
+        player.notify({ author: 'table', timestamp: Date.now(), message: "You received " + card.name, type: 'card', for: player.id, card: { name: card.name, value: card.value }, handValue: player.handValue(), handBet: player.hand.bet })
       } else {
-        this.notifyAllPlayers({ author: 'table', timestamp: Date.now(), message: player.id + " received " + card.name, type: 'card', for: player.id, card: { name: card.name, value: card.value }, handValue: player.handValue() });
+        this.notifyAllPlayers({ author: 'table', timestamp: Date.now(), message: player.id + " received " + card.name, type: 'card', for: player.id, card: { name: card.name, value: card.value }, handValue: player.handValue(), handBet: player.hand.bet });
       }
     }
 
     firstTurn() {
       // Draw card for each player including dealer.
       for (var player of this.players.values()) {
-        this.drawCard(player, false);
+        if (player.entered) {
+          this.drawCard(player, false);
+        }
       }
       // draw an hidden card for the dealer.
       this.drawCard(this.players.get("dealer"), true);
       // Draw a second card for each player.
       for (var player of this.players.values()) {
-        if (player.id !== "dealer") {
+        if (player.id !== "dealer" && player.entered) {
           this.drawCard(player, false);
           this.turnOrder.push(player);
         }
@@ -112,8 +117,14 @@ module.exports = {
 
     resetGame() {
       for (var player of this.players.values()) {
-        player.hand = [];
+        player.hand = null;
+        player.entered = false;
       }
+      var dealer = this.players.get("dealer");
+      dealer.hand = new Hand("dealer");
+      dealer.hand.bet = 0;
+      dealer.entered = true;
+      dealer.bot = true;
       this.started = false;
       this.turnOrder = [];
       this.currentPlayer = null;
@@ -131,7 +142,7 @@ module.exports = {
     playerTurn(player) {
       console.log("Turn of: " + player.id);
       this.currentPlayer = player;
-      this.currentPlayer.notify({ author: 'table', timestamp: Date.now(), message: 'This is your turn. Use /card or /stand.', type: 'notification', notification: 'playerturn' });
+      this.notifyAllPlayers({ author: 'table', timestamp: Date.now(), message: 'This turn of ' + player.id +  ' for hand ' + player.hand.id +  '.', type: 'notification', notification: 'playerturn', player: player.id, hand: player.hand.id });
     }
 
     nextPlayerTurn() {
@@ -148,8 +159,9 @@ module.exports = {
 
     dealerTurn(dealer) {
       console.log("Turn of: " + dealer.id);
+      this.notifyAllPlayers({ author: 'table', timestamp: Date.now(), message: 'This turn of ' + dealer.id +  ' for hand ' + dealer.id +  '.', type: 'notification', notification: 'playerturn', player: dealer.id, hand: dealer.id });
       var card = dealer.showCard(1);
-      this.notifyAllPlayers({ author: 'table', timestamp: Date.now(), message: "Dealer shows " + card.name, type: 'card', for: "dealer", card: { name: card.name, value: card.value }, handValue: dealer.handValue() });
+      this.notifyAllPlayers({ author: 'table', timestamp: Date.now(), message: "Dealer shows " + card.name, type: 'card', for: "dealer", hand: "dealer", card: { name: card.name, value: card.value }, handValue: dealer.handValue(), handBet: dealer.hand.bet });
       this.currentPlayer = null;
       this.started = false;
       if (this.automated) {
@@ -203,6 +215,15 @@ module.exports = {
               console.log("This is not this player's turn or game is not launched.");
             }
             break;
+          case "bet":
+            console.log("Command : Bet " + message.bet + " for " + socket.nickname);
+            if (!this.started && !this.players.get(socket.nickname).entered ) {
+              this.players.get(socket.nickname).bet(message.bet);
+              this.io.in(this.id).emit('game message', { author: 'table', timestamp: Date.now(), message: socket.nickname + " bet " +  message.bet, type: 'betaccepted', bet: message.bet, for: socket.nickname, hand: socket.nickname });
+            } else {
+              socket.emit('game message', { author: 'table', timestamp: Date.now(), message: "Bet rejected.", type: 'betrejected' });
+            }
+            break;
           default:
             console.log("Command : Unkown command : " + message.command);
             break;
@@ -218,37 +239,22 @@ module.exports = {
   }
 }
 
-class Player {
-  constructor(id) {
-    this.id = id;
-    this.hand = [];
-    this.bot = false;
-    this.socket = null;
+class Hand {
+  constructor(playerId, handId) {
+    this.id = handId;
+    this.playerId = playerId;
+    this.cards = [];
+    this.value = [];
+    this.bet = 0;
   }
 
-  receivedCard(card, hidden) {
-    if (hidden) {
-      console.log("Drawed an hidden " + card.name);
-      card.hidden = true;
-      this.hand.push(card);
-    } else {
-      console.log("Drawed " + card.name);
-      this.hand.push(card);
-      console.log(this.id + " hand is now of value " + this.handValue());
-    }
+  addCard(card) {
+    this.cards.push(card);
   }
 
-  showCard(cardindex) {
-    if (this.hand[cardindex].hidden) {
-      console.log(this.id + " shows " + this.hand[cardindex].name)
-      console.log(this.id + " hand is now of value " + this.handValue());
-      return this.hand[cardindex];
-    }
-  }
-
-  handValue() {
+  getValues() {
     var possibleValues = [0];
-    for (var card of this.hand) {
+    for (var card of this.cards) {
       var newValues = [];
       for (var i = 0; i < possibleValues.length; i++) {
         newValues[i] = possibleValues[i] + card.value[0];
@@ -264,6 +270,50 @@ class Player {
       }
     }
     return possibleValues;
+  }
+
+  getCard(index) {
+    return this.cards[index];
+  }
+}
+
+class Player {
+  constructor(id) {
+    this.id = id;
+    this.hand = null;
+    this.bot = false;
+    this.socket = null;
+    this.entered = false;
+  }
+
+  bet(bet) {
+    this.hand = new Hand(this.id, this.id);
+    this.hand.bet = bet;
+    this.entered = true;
+  }
+
+  receivedCard(card, hidden) {
+    if (hidden) {
+      console.log("Drawed an hidden " + card.name);
+      card.hidden = true;
+      this.hand.addCard(card);
+    } else {
+      console.log("Drawed " + card.name);
+      this.hand.addCard(card);
+      console.log(this.id + " hand is now of value " + this.handValue());
+    }
+  }
+
+  showCard(cardindex) {
+    if (this.hand.getCard(cardindex).hidden) {
+      console.log(this.id + " shows " + this.hand.getCard(cardindex).name)
+      console.log(this.id + " hand is now of value " + this.handValue());
+      return this.hand.getCard(cardindex);
+    }
+  }
+
+  handValue() {
+    return this.hand.getValues();
   }
 
   notify(message) {

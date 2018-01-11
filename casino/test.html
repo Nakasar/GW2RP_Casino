@@ -28,7 +28,7 @@
 </head>
 <body>
 
-  <main class="container" role="main">
+  <main class="container-fluid" role="main">
     <div id="fatal-error" class="container">
       <h1>Ooops :/</h1>
       <p>Il semblerait que vous ne puissiez pas accéder au casino. Si vous voyez ce message, c'est probablement que quelque chose ne va pas de notre côté ou de nos associés. Vérifiez toutefois que JavaScript est autorisé sur votre navigateur internet.</p>
@@ -56,58 +56,71 @@
       </form>
     </div>
 
-    <div id="game" class="container" hidden>
+    <div id="game" class="container-fluid" hidden>
       <h1>VALET NOIR</h1>
       <p>Connecté en tant que <span id="nickname"></span>.</p>
+      <div class="row">
+        <div id="chat" class="col-lg">
+          <ul id="player-list" class="list-group">
 
-      <div id="main-controls" class="container">
-        <div class="btn-group" role="group" aria-label="Main controls">
-          <button type="button" class="btn btn-danger" id="disconnect">QUITTER</button>
-        </div>
-      </div>
+          </ul>
 
-      <div id="chat" class="container">
-        <ul id="player-list" class="list-group">
+          <ul id="game-history" class="list-group">
+          </ul>
 
-        </ul>
-
-        <ul id="game-history" class="list-group">
-        </ul>
-
-        <form id="chat-form">
-          <div class="form-group">
-            <div class="input-group mb-3">
-              <div class="input-group-prepend">
-                <span class="input-group-text" id="chat-nickname">Pseudo</span>
-              </div>
-              <input class="form-control" id="message" autocomplete="off" />
-              <div class="input-group-append">
-                <button class="btn btn-secondary" type="submit">Envoyer</button>
+          <form id="chat-form">
+            <div class="form-group">
+              <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                  <span class="input-group-text" id="chat-nickname">Pseudo</span>
+                </div>
+                <input class="form-control" id="message" autocomplete="off" />
+                <div class="input-group-append">
+                  <button class="btn btn-secondary" type="submit">Envoyer</button>
+                </div>
               </div>
             </div>
+          </form>
+        </div>
+
+        <div id="control-panel" class="col-lg">
+          <div id="main-controls" class="btn-group" role="group" aria-label="Main controls">
+            <button type="button" class="btn btn-danger" id="disconnect">QUITTER</button>
           </div>
-        </form>
-      </div>
-
-      <div id="control-panel" class="container">
-        <div id="game-controls" class="btn-group" role="group" aria-label="Game controls">
-          <button type="button" class="btn btn-success" id="start-game">Commencer</button>
-          <button type="button" class="btn btn-warning" id="reset-game">Nouvelle Partie</button>
+          <div id="game-controls" class="btn-group" role="group" aria-label="Game controls">
+            <button type="button" class="btn btn-success" id="start-game">Commencer</button>
+            <button type="button" class="btn btn-warning" id="reset-game">Nouvelle Partie</button>
+          </div>
+          <br/>
+          <br/>
+          <div id="bet-controls">
+            <form id="bet-form">
+              <div class="form-group">
+                <div class="input-group mb-3">
+                  <div class="input-group-prepend">
+                    <span class="input-group-text">Mise (pa)</span>
+                  </div>
+                  <input class="form-control" id="bet" autocomplete="off" aria-describedby="betHelp" required />
+                  <div class="input-group-append">
+                    <button class="btn btn-secondary" type="submit">Miser</button>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+          <div id="turn-controls" class="btn-group" role="group" aria-label="Turn controls" hidden>
+            <button type="button" class="btn btn-primary" id="card">Carte</button>
+            <button type="button" class="btn btn-info" id="stand">Tenir</button>
+            <!--<button type="button" class="btn btn-info" id="split">Diviser</button>
+            <button type="button" class="btn btn-info" id="surrender">Abandonner</button>-->
+          </div>
         </div>
-        <br/>
-        <br/>
-        <div id="turn-controls" class="btn-group" role="group" aria-label="Turn controls" hidden>
-          <button type="button" class="btn btn-primary" id="card">Carte</button>
-          <button type="button" class="btn btn-info" id="stand">Tenir</button>
-          <button type="button" class="btn btn-info" id="split">Diviser</button>
-          <button type="button" class="btn btn-info" id="surrender">Abandonner</button>
+
+        <div id="hands" class="col-lg">
+          <ul id="hands-list" class="list-group">
+
+          </ul>
         </div>
-      </div>
-
-      <div id="hands" class="container">
-        <ul id="hands-list" class="list-group">
-
-        </ul>
       </div>
     </div>
   </main>
@@ -267,6 +280,13 @@
     removePlayerFromList({ nickname: leftmessage.nickname });
   }
 
+  function onPlayerTurnMessage(message) {
+    displayInChat(message.message, "info");
+    if (hands.has(message.hand)) {
+      hands.get(message.hand).activate();
+    }
+  }
+
   function onGameMessage(message) {
     console.log(message);
     if (message.type) {
@@ -278,19 +298,29 @@
         case "gamereset":
           hands = new Map();
           $('#hands #hands-list').html('');
+          $('#bet-controls').show();
+          $('#turn-controls').attr('hidden', true);
           displayInChat(message.message, "major");
           break;
         case "commanderror":
           displayInChat(message.message, "error");
           break;
+        case "betaccepted":
+          var hand = new Hand(message.hand);
+          hand.bet = message.bet;
+          hands.set(message.hand, hand);
+          hand.createDisplay();
+          if (message.for === socket.nickname) {
+            $('#bet-controls').hide();
+          }
+          break;
         case "notification":
           switch (message.notification) {
             case "playerturn":
-              displayInChat(message.message, "info");
-              $('#turn-controls').removeAttr('hidden');
+              onPlayerTurnMessage(message);
               break;
             case "endplayerturn":
-              $('#turn-controls').attr('hidden', true);
+              //$('#turn-controls').attr('hidden', true);
               break;
             default:
               displayInChat(message.message, "info");
@@ -311,11 +341,11 @@
           }
           break;
         default:
-          displayInChat(message.message, "message");
+          displayInChat('<em>' + message.author + "</em>> " + message.message, "message");
           break;
       }
     } else {
-      displayInChat(message.message, "message");
+      displayInChat('<em>' + message.author + "</em>> " + message.message, "message");
     }
   }
 
@@ -377,32 +407,54 @@
   }
 
   class Hand {
-    constructor(playerId) {
-      this.id = playerId;
+    constructor(handId) {
+      this.id = handId;
+      this.hash = this.id.hashCode();
       this.value = 0;
+      this.bet = 100;
       this.cards = [];
     }
 
     createDisplay() {
       if (this.id === socket.nickname) {
-        $('#hands #hands-list').append('<li class="list-group-item active" id="' + this.id + '"><h2 id="player-id">Joueur</h2><p>Valeur de la main : <span id="hand-value">0</span></p><ul id="cards-list" class="cards-list"></ul></li>');
+        $('#hands #hands-list').append('<li class="list-group-item list-group-item-info" id="' + this.hash + '"><h2 id="player-id">' + this.id + '</h2><ul><li>Mise : <span id="hand-bet">' + this.bet + '</span></li><li>Valeur de la main : <span id="hand-value">' + this.value + '</span></li></ul><ul id="cards-list" class="cards-list"></ul></li>');
       } else {
-        $('#hands #hands-list').append('<li class="list-group-item" id="' + this.id + '"><h2 id="player-id">Joueur</h2><p>Valeur de la main : <span id="hand-value">0</span></p><ul id="cards-list" class="cards-list"></ul></li>');
+        $('#hands #hands-list').append('<li class="list-group-item" id="' + this.hash + '"><h2 id="player-id">' + this.id + '</h2><ul><li>Mise : <span id="hand-bet">' + this.bet + '</span></li><li>Valeur de la main : <span id="hand-value">' + this.value + '</span></li></ul><ul id="cards-list" class="cards-list"></ul></li>');
       }
     }
 
     updateDisplay() {
-      var display = '<h2 id="player-id">' + this.id + '</h2><p>Valeur de la main : <span id="hand-value">' + this.value + '</span></p><ul id="cards-list" class="cards-list">';
+      console.log(this);
+      var display = '<h2 id="player-id">' + this.id + '</h2><ul><li>Mise : <span id="hand-bet">' + this.bet + '</span></li><li>Valeur de la main : <span id="hand-value">' + this.value + '</span></li></ul><ul id="cards-list" class="cards-list">';
       for (var card of this.cards) {
         var cardObjet = cards.get(card.name);
         display += '<span style="color: ' + cardObjet.displayColor + ';">' + cardObjet.display + "</span> ";
       }
       display += '</ul>';
-      $('#hands #hands-list #' + this.id).html(display);
+      $('#hands #hands-list #' + this.hash).html(display);
     }
 
     addCard(card) {
       this.cards.push(card)
+    }
+
+    deactivate() {
+      $('#hands #hands-list #' + this.hash).removeClass('list-group-item-primary');
+      if (this.id === socket.nickname) {
+        $('#hands #hands-list #' + this.hash).addClass('list-group-item-info');
+        $('#turn-controls').attr('hidden', true);
+      }
+    }
+
+    activate() {
+      for (var hand of hands.values()) {
+        hand.deactivate();
+      }
+      $('#hands #hands-list #' + this.hash).removeClass('list-group-item-info');
+      $('#hands #hands-list #' + this.hash).addClass('list-group-item-primary');
+      if (this.id === socket.nickname) {
+        $('#turn-controls').removeAttr('hidden');
+      }
     }
   }
 
@@ -412,6 +464,7 @@
       var hand = hands.get(message.for);
       hand.addCard(message.card);
       hand.value = message.handValue;
+      hand.bet = message.handBet;
       hand.updateDisplay();
     } else {
       // Create new hand
@@ -420,6 +473,7 @@
       hand.createDisplay();
       hand.addCard(message.card);
       hand.value = message.handValue;
+      hand.bet = message.handBet;
       hand.updateDisplay();
     }
   }
@@ -447,6 +501,16 @@
    })
    $('#stand').click(function() {
      socket.emit('game message', { type: 'command', command: 'stand' });
+     return false;
+   })
+   $('#bet-form').submit(function() {
+     var bet = $('#bet-form #bet').val();
+     if (bet.length > 0 && !isNaN(bet)) {
+       socket.emit('game message', { type: 'command', command: 'bet', bet: bet });
+       $('#bet-form #bet').val('');
+     } else {
+       console.log("Invalid bet : bet must me an integer.")
+     }
      return false;
    })
 
