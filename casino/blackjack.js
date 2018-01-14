@@ -280,6 +280,7 @@ class Hand {
 class Player {
   constructor(id) {
     this.id = id;
+    this.wallet = 0;
     this.hand = null;
     this.bot = false;
     this.socket = null;

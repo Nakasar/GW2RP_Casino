@@ -13,6 +13,7 @@ const casino = require("./casino/casino.js");
 var myCasino = new casino.Casino("Epeirevine");
 console.log(myCasino.id + " created.");
 
+app.use('/casino/static', express.static('casino'));
 app.use('/casino/imgs', express.static('public/src/img'));
 
 app.get('/casino', function(req, res) {
@@ -65,8 +66,17 @@ io.on('connection', function(socket) {
         }
         socket.nickname = nickname;
       }
-      socket.emit("log accepted", { nickname: socket.nickname, tableId: socket.table.id, currentPlayers: socket.table.playerArray(), motd: "" });
+
       socket.table.addPlayerBySocket(socket);
+
+      var wallet = 0;
+      if (req.wallet && !isNaN(req.wallet) && req.wallet > 0) {
+        socket.table.players.get(socket.nickname).wallet = req.wallet;
+        wallet = req.wallet;
+      }
+
+      socket.emit("log accepted", { nickname: socket.nickname, tableId: socket.table.id, wallet: wallet, currentPlayers: socket.table.playerArray(), motd: "" });
+      
       console.log("Socket logged in as " + socket.nickname + " on table " + socket.table.id);
     } else {
       socket.emit("log rejected");
