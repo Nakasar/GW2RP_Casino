@@ -88,12 +88,18 @@ module.exports = {
       console.log("Draw card for " + player.id + "...");
       let card = this.deck.pickFirstCard();
       player.receivedCard(card, hidden);
-      console.log(player.hand);
-      console.log(player.handValue());
+      var handValue = player.handValue();
+
       if (hidden) {
-        player.notify({ author: 'table', timestamp: Date.now(), message: "You received " + card.name, type: 'card', for: player.id, card: { name: card.name, value: card.value }, handValue: player.handValue(), handBet: player.hand.bet })
+        player.notify({ author: 'table', timestamp: Date.now(), message: "You received " + card.name, type: 'card', for: player.id, card: { name: card.name, value: card.value }, handValue: handValue, handBet: player.hand.bet })
       } else {
-        this.notifyAllPlayers({ author: 'table', timestamp: Date.now(), message: player.id + " received " + card.name, type: 'card', for: player.id, card: { name: card.name, value: card.value }, handValue: player.handValue(), handBet: player.hand.bet });
+        this.notifyAllPlayers({ author: 'table', timestamp: Date.now(), message: player.id + " received " + card.name, type: 'card', for: player.id, card: { name: card.name, value: card.value }, handValue: handValue, handBet: player.hand.bet });
+      }
+
+      if (handValue.burned) {
+        if (player.id !== "dealer") {
+          this.nextPlayerTurn();
+        }
       }
     }
 
@@ -163,18 +169,51 @@ module.exports = {
       var card = dealer.showCard(1);
       this.notifyAllPlayers({ author: 'table', timestamp: Date.now(), message: "Dealer shows " + card.name, type: 'card', for: "dealer", hand: "dealer", card: { name: card.name, value: card.value }, handValue: dealer.handValue(), handBet: dealer.hand.bet });
       this.currentPlayer = null;
-      this.started = false;
+      //this.started = false;
       if (this.automated) {
-        // checl value of hand for dealer.
+        // check value of hand for dealer.
         var draw = true;
         while (draw) {
-          for (var value of dealer.handValue()) {
+          for (var value of dealer.handValue().values) {
             if (value >= 17) {
               draw = false;
             }
           }
           if (draw) {
             this.drawCard(dealer, false);
+          }
+        }
+      }
+      this.endGame();
+    }
+
+    endGame() {
+      console.log("Game is finished. Resolve bets.");
+      var dealerResult = this.players.get("dealer").hand.getResult();
+      for (var player of this.turnOrder) {
+        if (!player.burned) {
+          var hand = player.hand;
+          var handResult = hand.getResult();
+          console.log(handResult);
+          console.log(dealerResult);
+          if (dealerResult.burned) {
+            player.notify({ author: 'table', timestamp: Date.now(), message: "Game is a win.", type: 'result', result: "win", handBet: hand.bet });
+          } else if (handResult.blackjack && dealerResult.blackjack) {
+            player.notify({ author: 'table', timestamp: Date.now(), message: "Game is a draw.", type: 'result', result: "draw", handBet: hand.bet });
+          } else if (handResult.blackjack && !dealerResult.blackjack) {
+            // Player wins
+            player.notify({ author: 'table', timestamp: Date.now(), message: "Game is a win.", type: 'result', result: "win", handBet: hand.bet });
+          } else if (!handResult.blackJack && dealerResult.blackjack) {
+            // player loses
+            player.notify({ author: 'table', timestamp: Date.now(), message: "Game is a lost.", type: 'result', result: "lost", handBet: hand.bet });
+          } else if (handResult.value > dealerResult.value) {
+            // player wins
+            player.notify({ author: 'table', timestamp: Date.now(), message: "Game is a win.", type: 'result', result: "win", handBet: hand.bet });
+          } else if (handResult.value < dealerResult.value) {
+            // player losess
+            player.notify({ author: 'table', timestamp: Date.now(), message: "Game is a lost.", type: 'result', result: "lost", handBet: hand.bet });
+          } else {
+            player.notify({ author: 'table', timestamp: Date.now(), message: "Game is a draw.", type: 'result', result: "draw", handBet: hand.bet });
           }
         }
       }
@@ -201,6 +240,7 @@ module.exports = {
             break;
           case "card" :
             console.log("Command : Draw a card for " + socket.nickname);
+            console.log(this.started);
             if (this.started && this.currentPlayer.id === socket.nickname) {
               this.drawCard(this.currentPlayer, false);
             } else {
@@ -217,9 +257,14 @@ module.exports = {
             break;
           case "bet":
             console.log("Command : Bet " + message.bet + " for " + socket.nickname);
-            if (!this.started && !this.players.get(socket.nickname).entered ) {
-              this.players.get(socket.nickname).bet(message.bet);
-              this.io.in(this.id).emit('game message', { author: 'table', timestamp: Date.now(), message: socket.nickname + " bet " +  message.bet, type: 'betaccepted', bet: message.bet, for: socket.nickname, hand: socket.nickname });
+            if (!this.started && !this.players.get(socket.nickname).entered) {
+              var player = this.players.get(socket.nickname);
+              if (player.wallet >= message.bet) {
+                player.bet(message.bet);
+                this.io.in(this.id).emit('game message', { author: 'table', timestamp: Date.now(), message: socket.nickname + " bet " +  message.bet, type: 'betaccepted', bet: message.bet, for: socket.nickname, hand: socket.nickname });
+              } else {
+                socket.emit('game message', { author: 'table', timestamp: Date.now(), message: "Bet rejected : over current wallet.", type: 'betrejected' });
+              }
             } else {
               socket.emit('game message', { author: 'table', timestamp: Date.now(), message: "Bet rejected.", type: 'betrejected' });
             }
@@ -269,7 +314,19 @@ class Hand {
         possibleValues = newValues;
       }
     }
-    return possibleValues;
+    var burned = false;
+    if (Math.min.apply(null, possibleValues) > 21) {
+      burned = true;
+    }
+
+    return { values: possibleValues, burned: burned };
+  }
+
+  getResult() {
+    var values = this.getValues();
+    var max = Math.max.apply(null, values.values);
+    var blackJack = (this.cards.length == 2 && values.values.includes(21)) ? true : false;
+    return { value: max, blackjack: blackJack, burned: values.burned };
   }
 
   getCard(index) {
@@ -288,9 +345,14 @@ class Player {
   }
 
   bet(bet) {
-    this.hand = new Hand(this.id, this.id);
-    this.hand.bet = bet;
-    this.entered = true;
+    if (this.wallet >= bet) {
+      this.hand = new Hand(this.id, this.id);
+      this.hand.bet = bet;
+      this.wallet -= bet;
+      this.entered = true;
+    } else {
+      console.log(this.id + " tried to bet over his/her wallet.");
+    }
   }
 
   receivedCard(card, hidden) {
@@ -301,6 +363,10 @@ class Player {
     } else {
       console.log("Drawed " + card.name);
       this.hand.addCard(card);
+      var value = this.handValue();
+      if (value.burned) {
+        this.hand.burned = true;
+      }
       console.log(this.id + " hand is now of value " + this.handValue());
     }
   }

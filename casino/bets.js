@@ -4,6 +4,35 @@ var Bets = {
     return value * (unit === "po" ? 100 : 1);
   },
 
+  valueToTokens: function valueToTokens(value) {
+    var tokens = new Map();
+    var remains = value;
+    var amount = 0;
+    amount = Math.floor(remains/1000);
+    remains = remains - amount * 1000;
+    tokens.set("10 po", amount);
+    amount = Math.floor(remains/500);
+    remains = remains - amount * 500;
+    tokens.set("5 po", amount);
+    amount = Math.floor(remains/200);
+    remains = remains - amount * 200;
+    tokens.set("2 po", amount);
+    amount = Math.floor(remains/100);
+    remains = remains - amount * 100;
+    tokens.set("1 po", amount);
+    amount = Math.floor(remains/50);
+    remains = remains - amount * 50;
+    tokens.set("50 pa", amount);
+    amount = Math.floor(remains/25);
+    remains = remains - amount * 25;
+    tokens.set("25 pa", amount);
+    amount = Math.floor(remains/5);
+    remains = remains - amount * 5;
+    tokens.set("5 pa", amount);
+    tokens.set("1 pa", remains);
+    return tokens;
+  },
+
   getBetObject: function getBetObject(bet) {
     var po = Math.floor(bet/100);
     var pa = bet - po * 100;
@@ -16,6 +45,16 @@ var Bets = {
     constructor(elementId) {
       this.elementId = elementId;
       this.tokens = new Map();
+    }
+
+    addValue(value) {
+      this.addTokensMap(Bets.valueToTokens(value));
+    }
+
+    addTokensMap(tokensMap) {
+      for (var [token, amount] of tokensMap) {
+        this.addTokens(token, amount);
+      }
     }
 
     addTokens(tokenValue, quantity) {
@@ -72,6 +111,14 @@ var Bets = {
       remains = remains - amount * 5;
       this.tokens.set("5 pa", amount);
       this.tokens.set("1 pa", remains);
+    }
+
+    getValue() {
+      var sum = 0;
+      for (var [token, amount] of this.tokens) {
+        sum += Bets.getTokenValue(token) * amount;
+      }
+      return sum;
     }
   },
 

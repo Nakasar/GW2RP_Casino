@@ -45,6 +45,12 @@
     height: 15px;
     display: inline-block;
   }
+  .burning {
+    background-image: url('https://wiki.guildwars2.com/images/4/45/Burning.png');
+    width: 32px;
+    height: 32px;
+    display: inline-block;
+  }
   </style>
 </head>
 <body>
@@ -186,6 +192,7 @@
       if (socket && socket.nickname && socket.nickname.length > 1 && socket.tableId && socket.tableId.length > 1) {
         window.sessionStorage.setItem('nickname', socket.nickname);
         window.sessionStorage.setItem('currentTable', socket.tableId);
+        window.sessionStorage.setItem('currentWallet', playerBank.getValue());
       }
     } else {
       console.log("Storage is not available in this browser.");
@@ -195,10 +202,14 @@
     var storedNickname = window.sessionStorage.getItem('nickname');
     if (storedNickname && storedNickname.length > 1) {
       $("#login-form #nickname").val(storedNickname);
-      var storedTableId = window.sessionStorage.getItem('currentTable');
-      if (storedTableId && storedTableId.length > 1 && storedTableId === tableIdInPath) {
-        // Auto reload socket with table.
-        connect(storedNickname, storedTableId);
+      var storedWallet = window.sessionStorage.getItem('currentWallet');
+      if (storedWallet && storedWallet >= 0) {
+        $("#login-form #wallet").val(storedWallet);
+        var storedTableId = window.sessionStorage.getItem('currentTable');
+        if (storedTableId && storedTableId.length > 1 && storedTableId === tableIdInPath) {
+          // Auto reload socket with table.
+          connect(storedNickname, storedTableId, storedWallet);
+        }
       }
     }
   }
@@ -332,7 +343,8 @@
         case "gamereset":
           hands = new Map();
           $('#hands #hands-list').html('');
-          $('#bet-controls').show();
+          $('#bet-controls #bet-tmp').show();
+          $('#bet-controls #action-bet').attr('disabled', false);
           $('#turn-controls').attr('hidden', true);
           displayInChat(message.message, "major");
           break;
@@ -344,8 +356,10 @@
           hand.bet = message.bet;
           hands.set(message.hand, hand);
           hand.createDisplay();
+          temporaryBet.clear();
           if (message.for === socket.nickname) {
-            $('#bet-controls').hide();
+            $('#bet-controls #bet-tmp').hide();
+            $('#bet-controls #action-bet').attr('disabled', true);
           }
           break;
         case "notification":
@@ -359,6 +373,24 @@
             default:
               displayInChat(message.message, "info");
               break;
+          }
+          break;
+        case "result":
+          switch (message.result) {
+            case "win":
+              // give back to player twice his bet.
+              playerBank.addValue(message.handBet * 2);
+              break;
+            case "draw":
+              // give back to player his bet.
+              playerBank.addValue(message.handBet);
+              break;
+            case "lost":
+              // Do nothing, player lost his bet.
+              break;
+            default:
+              console.log("Unrecognized game result message:");
+              console.log(message);
           }
           break;
         case "social":
@@ -442,6 +474,7 @@
 
   const poHtml = '<span class="po" alt="po" title="po"></span>'
   const paHtml = '<span class="pa" alt="pa" title="pa"></span>'
+  const burnedHtml = '<span class="burning" alt="Burned." title="Hand burned, bet is lost."></span>'
 
   class Hand {
     constructor(handId) {
@@ -450,21 +483,35 @@
       this.value = 0;
       this.bet = 0;
       this.cards = [];
+      this.burned = false;
     }
 
     createDisplay() {
-      var betObject = Bets.getBetObject(this.bet)
-      if (this.id === socket.nickname) {
-        $('#hands #hands-list').append('<li class="list-group-item list-group-item-info" id="' + this.hash + '"><h2 id="player-id">' + this.id + '</h2><ul><li>Mise : <span id="hand-bet">' + betObject.po + ' ' + poHtml + ' ' + betObject.pa + ' ' + paHtml + '</span></li><li>Valeur de la main : <span id="hand-value">' + this.value + '</span></li></ul><ul id="cards-list" class="cards-list"></ul></li>');
+      var betObject = Bets.getBetObject(this.bet);
+      var valueHtml;
+      if (this.burned) {
+        valueHtml = burnedHtml;
       } else {
-        $('#hands #hands-list').append('<li class="list-group-item" id="' + this.hash + '"><h2 id="player-id">' + this.id + '</h2><ul><li>Mise : <span id="hand-bet">' + betObject.po + ' ' + poHtml + ' ' + betObject.pa + ' ' + paHtml + '</span></li><li>Valeur de la main : <span id="hand-value">' + this.value + '</span></li></ul><ul id="cards-list" class="cards-list"></ul></li>');
+        valueHtml = this.value;
+      }
+
+      if (this.id === socket.nickname) {
+        $('#hands #hands-list').append('<li class="list-group-item list-group-item-info" id="' + this.hash + '"><h2 id="player-id">' + this.id + '</h2><ul><li>Mise : <span id="hand-bet">' + betObject.po + ' ' + poHtml + ' ' + betObject.pa + ' ' + paHtml + '</span></li><li>Valeur de la main : <span id="hand-value">' + valueHtml + '</span></li></ul><ul id="cards-list" class="cards-list"></ul></li>');
+      } else {
+        $('#hands #hands-list').append('<li class="list-group-item" id="' + this.hash + '"><h2 id="player-id">' + this.id + '</h2><ul><li>Mise : <span id="hand-bet">' + betObject.po + ' ' + poHtml + ' ' + betObject.pa + ' ' + paHtml + '</span></li><li>Valeur de la main : <span id="hand-value">' + valueHtml + '</span></li></ul><ul id="cards-list" class="cards-list"></ul></li>');
       }
     }
 
     updateDisplay() {
       var betObject = Bets.getBetObject(this.bet)
-      console.log(betObject);
-      var display = '<h2 id="player-id">' + this.id + '</h2><ul><li>Mise : <span id="hand-bet">' + betObject.po + ' ' + poHtml + ' ' +  betObject.pa + ' ' + paHtml + '</span></li><li>Valeur de la main : <span id="hand-value">' + this.value + '</span></li></ul><ul id="cards-list" class="cards-list">';
+
+      var valueHtml;
+      if (this.burned) {
+        valueHtml = burnedHtml;
+      } else {
+        valueHtml = this.value;
+      }
+      var display = '<h2 id="player-id">' + this.id + '</h2><ul><li>Mise : <span id="hand-bet">' + betObject.po + ' ' + poHtml + ' ' +  betObject.pa + ' ' + paHtml + '</span></li><li>Valeur de la main : <span id="hand-value">' + valueHtml + '</span></li></ul><ul id="cards-list" class="cards-list">';
       for (var card of this.cards) {
         var cardObjet = cards.get(card.name);
         display += '<span style="color: ' + cardObjet.displayColor + ';">' + cardObjet.display + "</span> ";
@@ -502,8 +549,11 @@
     if (hands.has(message.for)) {
       var hand = hands.get(message.for);
       hand.addCard(message.card);
-      hand.value = message.handValue;
+      hand.value = message.handValue.values;
       hand.bet = message.handBet;
+      if (message.handValue.burned) {
+        hand.burned = true;
+      }
       hand.updateDisplay();
     } else {
       // Create new hand
@@ -511,7 +561,10 @@
       hands.set(message.for, hand);
       hand.createDisplay();
       hand.addCard(message.card);
-      hand.value = message.handValue;
+      hand.value = message.handValue.values;
+      if (message.handValue.burned) {
+        hand.burned = true;
+      }
       hand.bet = message.handBet;
       hand.updateDisplay();
     }
@@ -548,7 +601,6 @@
      if (!isNaN(bet.total) && bet.total > 0) {
        socket.emit('game message', { type: 'command', command: 'bet', bet: bet.total });
        $('#player-bet').html($('#bet-tmp').html())
-       temporaryBet.clear();
      } else {
        console.log("Invalid bet : bet must me an integer.");
      }
@@ -563,11 +615,16 @@
      event.preventDefault();
      var tokenId = event.dataTransfer.getData("text");
      var origin = event.dataTransfer.getData("origin");
-     if (event.target.id === "bet-tmp" && origin === "player-bank") {
+     var target = event.target.id;
+     if (target.includes("token") || !isNaN(target)) {
+       target = event.target.parentNode.id;
+     }
+     if (target === "bet-tmp" && origin === "player-bank") {
        var tokenValue = $("#player-bank #" + tokenId).attr('tokenvalue');
        playerBank.addTokens(tokenValue, -1);
        temporaryBet.addTokens(tokenValue, 1);
-     } else if (event.target.id === "player-bank" && origin === "bet-tmp") {
+     } else if (target === "player-bank" && origin === "bet-tmp") {
+       console.log("paf");
        var tokenValue = $("#bet-tmp #" + tokenId).attr('tokenvalue');
        temporaryBet.removeToken(tokenId);
        playerBank.addTokens(tokenValue, 1);
