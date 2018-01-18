@@ -51,6 +51,10 @@
     height: 32px;
     display: inline-block;
   }
+  .exchange-bank {
+    background-color: brown;
+    color: white;
+  }
   </style>
 </head>
 <body>
@@ -129,6 +133,9 @@
           <div id="bet-controls">
             <div id="bets">
               <div class="row">
+                <div id="bank" class="exchange-bank" ondrop="bankDrop(event)" ondragover="bankDragOver(event)">
+                  ECHANGE
+                </div>
                 <div id="player-bank" class="col-md zone" ondrop="zoneDrop(event);" ondragover="zoneDragOver(event);">
                 </div>
 
@@ -629,6 +636,22 @@
        temporaryBet.removeToken(tokenId);
        playerBank.addTokens(tokenValue, 1);
      }
+   }
+
+   function bankDrop(event) {
+     event.preventDefault();
+     var tokenId = event.dataTransfer.getData("text");
+     var origin = event.dataTransfer.getData("origin");
+     var target = event.target.id;
+     if (origin === "player-bank") {
+       var tokenValue = $("#player-bank #" + tokenId).attr('tokenvalue');
+       playerBank.exchangeToken(tokenValue);
+     }
+   }
+
+   function bankDragOver(event) {
+     event.preventDefault();
+     event.dataTransfer.dropEffect = "move";
    }
 
    function tokenDragStarthandler(event) {

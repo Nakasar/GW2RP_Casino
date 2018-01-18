@@ -1,4 +1,44 @@
 var Bets = {
+  tokenValues: ["10 po", "5 po", "2 po", "1 po", "50 pa", "25 pa", "5 pa", "1 pa"],
+  tokenExchangeRates: new Map([
+    [ "10 po", {
+      tokens : [
+        { token: "5 po", quantity: 2 }
+      ]
+    } ],
+    [ "5 po", {
+      tokens : [
+        { token: "2 po", quantity: 2 },
+        { token: "1 po", quantity: 1 }
+      ]
+    } ],
+    [ "2 po", {
+      tokens : [
+        { token: "1 po", quantity: 2 }
+      ]
+    } ],
+    [ "1 po", {
+      tokens : [
+        { token: "50 pa", quantity: 2 }
+      ]
+    } ],
+    [ "50 pa", {
+      tokens : [
+        { token: "25 pa", quantity: 2 }
+      ]
+    } ],
+    [ "25 pa", {
+      tokens : [
+        { token: "5 pa", quantity: 5 }
+      ]
+    } ],
+    [ "5 pa", {
+      tokens : [
+        { token: "1 pa", quantity: 5 }
+      ]
+    } ]
+  ]),
+
   getTokenValue: function getTokenValue(token) {
     var [value, unit] = token.split(" ");
     return value * (unit === "po" ? 100 : 1);
@@ -72,6 +112,7 @@ var Bets = {
         } else {
           $('#' + this.elementId + ' #token-' + tokenValue.replace(" ", "-")).removeClass('empty');
           $('#' + this.elementId + ' #token-' + tokenValue.replace(" ", "-")).attr('draggable', true);
+          $('#' + this.elementId + ' #token-' + tokenValue.replace(" ", "-")).attr('ondragstart', "tokenDragStarthandler(event)");
         }
       }
     }
@@ -119,6 +160,16 @@ var Bets = {
         sum += Bets.getTokenValue(token) * amount;
       }
       return sum;
+    }
+
+    exchangeToken(tokenValue) {
+      if (Bets.tokenExchangeRates.has(tokenValue) && this.tokens.get(tokenValue) > 0) {
+        this.addTokens(tokenValue, -1)
+        var returns = Bets.tokenExchangeRates.get(tokenValue);
+        for (var token of returns.tokens) {
+          this.addTokens(token.token, token.quantity)
+        }
+      }
     }
   },
 
