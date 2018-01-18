@@ -15,6 +15,7 @@ console.log(myCasino.id + " created.");
 
 app.use('/casino/static', express.static('casino'));
 app.use('/casino/imgs', express.static('public/src/img'));
+app.use('/casino/static', express.static('public/src'));
 
 app.get('/casino', function(req, res) {
   res.sendFile(__dirname + "/casino/test.html");
