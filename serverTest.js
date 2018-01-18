@@ -20,6 +20,10 @@ app.get('/casino', function(req, res) {
   res.sendFile(__dirname + "/casino/test.html");
 });
 
+app.get('/casino/bar', function(req, res) {
+  res.sendFile(__dirname + "/public/pages/coktails.html");
+})
+
 app.get('/casino/tokens/:token', function(req, res) {
   if (req.params.token.length > 1) {
     var tokenName;
@@ -76,7 +80,7 @@ io.on('connection', function(socket) {
       }
 
       socket.emit("log accepted", { nickname: socket.nickname, tableId: socket.table.id, wallet: wallet, currentPlayers: socket.table.playerArray(), motd: "" });
-      
+
       console.log("Socket logged in as " + socket.nickname + " on table " + socket.table.id);
     } else {
       socket.emit("log rejected");
