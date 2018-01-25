@@ -1,15 +1,20 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <title>Epeirevine Krytienne - Bar</title>
+
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.3/css/bootstrap.min.css" integrity="sha384-Zug+QiDoJOrZ5t4lssLdxGhVrurbmBWopoEl+M6BdEfwnCJZtKxi1KgxUyJq13dy" crossorigin="anonymous">
   <style>
   body {
+    padding-top: 4rem;
     background-color: wheat;
   }
-  .carte {
+
+  main {
     background: url('/casino/imgs/blackboard.jpg');
     color: white;
     font-family: cursive;
+    text-align: center;
   }
   .coktail-picture img {
     max-width: 100px;
@@ -21,11 +26,50 @@
   #coktails h2 {
     font-family: Fabfeltscript;
   }
+  #tokens {
+    margin: auto;
+  }
+  .po {
+    background-image: url('https://wiki.guildwars2.com/images/d/d1/Gold_coin.png');
+    width: 15px;
+    height: 15px;
+    display: inline-block;
+  }
+  .pa {
+    background-image: url('https://wiki.guildwars2.com/images/3/3c/Silver_coin.png');
+    width: 15px;
+    height: 15px;
+    display: inline-block;
+  }
   </style>
 </head>
 <body>
-  <main role="main" class="container-fluid">
+  <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
+      <div class="container">
+        <div class="navbar-brand">
+          <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <a class="navbar-brand" href="#">L'Epeirevine Krytienne</a>
+        </div>
+      </div>
+  </nav>
+
+  <main role="main" class="container">
     <h1>BAR</h1>
+
+    <div class="row">
+      <ul id="tokens" class="list-inline">
+        <li class="list-inline-item"><img width="60px" height="60px" src="/casino/tokens/10po" /> 10 <span class="po" title="po"></span></li>
+        <li class="list-inline-item"><img width="60px" height="60px" src="/casino/tokens/5po" /> 5 <span class="po" title="po"></span></li>
+        <li class="list-inline-item"><img width="60px" height="60px" src="/casino/tokens/2po" /> 2 <span class="po" title="po"></span></li>
+        <li class="list-inline-item"><img width="60px" height="60px" src="/casino/tokens/1po" /> 1 <span class="po" title="po"></span></li>
+        <li class="list-inline-item"><img width="60px" height="60px" src="/casino/tokens/50pa" /> 50 <span class="pa" title="pa"></span></li>
+        <li class="list-inline-item"><img width="60px" height="60px" src="/casino/tokens/25pa" /> 25 <span class="pa" title="pa"></span></li>
+        <li class="list-inline-item"><img width="60px" height="60px" src="/casino/tokens/5pa" /> 5 <span class="pa" title="pa"></span></li>
+        <li class="list-inline-item"><img width="60px" height="60px" src="/casino/tokens/1pa" /> 1 <span class="pa" title="pa"></span></li>
+      </ul>
+    </div>
 
     <div class="row">
       <div id="coktails" class="col-lg carte">
@@ -66,7 +110,7 @@
             </tr>
             <tr>
               <td class="coktail-name">Fureur de Balthazar</td>
-              <td class="coktail-description">Celui-ci est là pour vous abattre. Un tonique d'épices et de saveurs explosif qui vous font monter en température, le tout dans l'acidité du citron qui accompagne si bien la grenade et la fraîcheur de la menthe.</td>
+              <td class="coktail-description">Celui-ci est là pour vous abattre. Un tonique explosif d'épices et de saveurs qui vous font monter en température, le tout dans l'acidité du citron qui accompagne si bien la grenade et la fraîcheur de la menthe.</td>
               <td class="coktail-picture"><img src="/casino/imgs/coktails/fureur_de_balthazar.jpg" /></td>
             </tr>
             <tr>
@@ -76,18 +120,11 @@
             </tr>
             <tr>
               <td class="coktail-name">Plaisir Simple</td>
-              <td class="coktail-description">Incarnant le désir d'une classe simple, le Plaisir Simple rassemble du Champagne, du citron verre, du Cointreau et un peu de sucre de canne, décoré de framboises gelées en guise de glaçons.</td>
+              <td class="coktail-description">Incarnant le désir d'une classe simple, le Plaisir Simple rassemble du Champagne, du citron vert, du Cointreau et un peu de sucre de canne, décoré de framboises gelées en guise de glaçons.</td>
               <td class="coktail-picture"><img src="/casino/imgs/coktails/plaisir_simple.jpg" /></td>
             </tr>
           </tbody>
         </table>
-      </div>
-
-      <div id="carte" class="col-lg carte" hidden>
-        <h2>Carte des Boissons</h2>
-        <p>Tout à 1 pièce d'argent !</p>
-
-
       </div>
     </div>
   </main>
