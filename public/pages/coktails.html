@@ -4,6 +4,7 @@
   <title>Epeirevine Krytienne - Bar</title>
 
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.3/css/bootstrap.min.css" integrity="sha384-Zug+QiDoJOrZ5t4lssLdxGhVrurbmBWopoEl+M6BdEfwnCJZtKxi1KgxUyJq13dy" crossorigin="anonymous">
+
   <style>
   body {
     padding-top: 4rem;
@@ -41,6 +42,14 @@
     height: 15px;
     display: inline-block;
   }
+  #casino-description-toggle {
+    color: white;
+    margin: auto;
+    border-color: white;
+  }
+  #casino-description .card {
+    background-color: transparent;
+  }
   </style>
 </head>
 <body>
@@ -70,6 +79,28 @@
         <li class="list-inline-item"><img width="60px" height="60px" src="/casino/tokens/1pa" /> 1 <span class="pa" title="pa"></span></li>
       </ul>
     </div>
+
+    <br/>
+
+    <div class="row">
+        <a id="casino-description-toggle" class="btn btn-outline-secondary" data-toggle="collapse" href="#casino-description" role="button" aria-expanded="false" aria-controls="casino-description">
+          Descriptions du Casino
+        </a>
+
+      <div class="collapse" id="casino-description">
+        <div class="card card-body">
+          <p>L’entrée est composée en face d’un escalier gardé par ce qui semble être homme du service de sécurité. A gauche les invités peuvent trouver le comptoir derrière lequel se trouve un vieil homme avec une moustache grise (Flèche verte). Il semble s’occuper du service d’échange de jetons contre de l’argent ainsi que des tickets de loterie. A ses côtés se trouve une serveuse (Gordon) s’occupant de vendre les cocktails.</p>
+          <p>La salle principale est occupée par une roulette (Rond Violet) sur la table centrale, nappée d’une couche de suédine verte sur laquelle est tracé le tableau des mises, composé par trois colonnes et douze lignes numérotés de 1 à 36 ainsi qu’une 37ème case pour le 0 (voir table de roulette wiki) un crouppier brun semble attendre auprès de cette dernière (Croix jaune)</p>
+          <p>Le fond gauche de la salle est occupé par une table de black jack (Coeur Rouge) classique pour sept joueurs, derrière cette dernière attend un second croupier (Everbloom).</p>
+          <p>Plusieurs canapés et fauteuils de bonne qualités ont également été installés avec de petites tables surélevée afin de poser les consommations. L’escalier monte pour sa part dans un salon en mezzanine au-dessus de la table de la roulette, ce dernier semble plus calme est plus adapté pour discuter plus calmement entre convives.</p>
+
+          <p>Le dernier étage pour sa part est pour le moment gardé par un homme de sécurité comme celui de l’entrée.</p>
+          <p>La dernière salle est occupée par une table de poker centrale, de confortables sièges sont disposés autour et plusieurs canapés sont disposés sur les côtés de la pièce. Une seule lumière éclaire la salle, elle est centrale et favorise théâtralement la table.<p>
+        </div>
+      </div>
+    </div>
+
+    <br/>
 
     <div class="row">
       <div id="coktails" class="col-lg carte">
